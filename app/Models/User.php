@@ -45,4 +45,11 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    //NEW
+    public function canAccessFilament(): bool
+    {
+        // Puedes colocar aquí la lógica que permita el acceso, por ejemplo:
+        return true;
+    }
 }
