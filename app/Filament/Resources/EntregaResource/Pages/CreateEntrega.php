@@ -16,20 +16,4 @@ class CreateEntrega extends CreateRecord
 
         return $data;
     }
-
-    //NEW
-    protected function getFormActions(): array
-    {
-        return [
-            Actions\CreateAction::make()
-                ->label('Crear Liquidación') // Opcional: Puedes personalizar la etiqueta si lo deseas
-                ->key('create') // Opcional: Clave única para la acción
-                ->disable(function (callable $get) {
-                    // Deshabilitar el botón "Crear" si NO hay detalles de liquidación
-                    $detalleLiquidacion = $get('detalle_liquidacion') ?? [];
-                    return empty($detalleLiquidacion); // Deshabilitar si el array de detalles está vacío
-                }),
-        ];
-    }
-
 }

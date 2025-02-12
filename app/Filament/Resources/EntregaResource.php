@@ -24,26 +24,12 @@ class EntregaResource extends Resource
                     ->label('Proveedor')
                     ->relationship('proveedor', 'nombrecompleto') // Relación con la tabla de proveedores
                     ->searchable()
-                    ->required(function (callable $get) {
-                        // Es requerido SOLO si el campo 'cliente_general' está vacío
-                        return empty($get('cliente_general'));
-                    })
-                    ->hidden(function (callable $get) {
-                        // Se oculta si el campo 'cliente_general' tiene un valor
-                        return !empty($get('cliente_general'));
-                    })
-                    ->reactive(),
-                Forms\Components\TextInput::make('cliente_general')
-                    ->label('Cliente General')
-                    ->required(function (callable $get) {
-                        // Es requerido SOLO si el campo 'proveedor_id' está vacío
-                        return empty($get('proveedor_id'));
-                    })
-                    ->hidden(function (callable $get) {
-                        // Se oculta si el campo 'proveedor_id' tiene un valor seleccionado
-                        return !empty($get('proveedor_id'));
-                    })
-                    ->reactive(),
+                    ->required()
+                    ->createOptionForm([
+                        Forms\Components\TextInput::make('nombrecompleto')
+                            ->label('Nombre')
+                            ->required()
+                    ]),
 
                 Forms\Components\Select::make('tipo_entrega')
                     ->label('Tipo de Entrega')

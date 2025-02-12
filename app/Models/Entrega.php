@@ -23,7 +23,6 @@ class Entrega extends Model
         'creado_por',
         'editado_por',
         'tipo_entrega', //Puede ser de tipo "COMPRA" o "ENTREGA"
-        'cliente_general',
         'liquidada'//NEW
     ];
     public function proveedor()
