@@ -50,6 +50,6 @@ class User extends Authenticatable
     //NEW
     public function canAccessPanel(Panel $panel): bool
     {
-        return str_ends_with($this->email, '@xxx.com');
+        return str_ends_with($this->email, '@yourdomain.com') && $this->hasVerifiedEmail();
     }
 }
