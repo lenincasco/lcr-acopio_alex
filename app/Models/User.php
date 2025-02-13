@@ -6,6 +6,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Filament\Panel;
 
 class User extends Authenticatable
 {
@@ -47,9 +48,8 @@ class User extends Authenticatable
     }
 
     //NEW
-    public function canAccessFilament(): bool
+    public function canAccessPanel(Panel $panel): bool
     {
-        // Puedes colocar aquí la lógica que permita el acceso, por ejemplo:
         return true;
     }
 }
