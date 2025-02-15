@@ -90,7 +90,7 @@ class LiquidacionResource extends Resource
                                         $entregaId = $get('entrega_id');
                                         if ($entregaId) {
                                             $entrega = Entrega::find($entregaId);
-                                            return $entrega ? [$entrega->id => $entrega->codigo ?? 'Sin código'] : [];
+                                            return $entrega ? [$entrega->id => $entrega->id ?? 'Sin código'] : [];
                                         }
                                         return [];
                                     })
@@ -153,6 +153,7 @@ class LiquidacionResource extends Resource
                             ->required()
                             ->numeric()
                             ->reactive()
+                            ->debounce(500)
                             ->afterStateUpdated(function (callable $set, $state, callable $get) {
                                 // Recalcular montos de entrega al cambiar precio_liquidacion
                                 $detalle = $get('detalle_liquidacion') ?? [];
@@ -194,6 +195,7 @@ class LiquidacionResource extends Resource
                             ->numeric()
                             ->default(0)
                             ->reactive()
+                            ->debounce(500)
                             ->hidden(function ($get) {
                                 return $get('credito_disponible_proveedor') === 0;
                             })

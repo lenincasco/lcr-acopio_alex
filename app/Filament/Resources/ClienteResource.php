@@ -25,6 +25,13 @@ class ClienteResource extends Resource
             ->schema([
                 Forms\Components\TextInput::make('nombrecompleto')
                     ->required(),
+                Forms\Components\Select::make('tipo')
+                    ->label('Tipo')
+                    ->options([
+                        'CLIENTE' => 'Cliente',
+                        'CONSIGNATARIO' => 'Consignatario',
+                    ])
+                    ->required(),
                 Forms\Components\TextInput::make('cedula'),
                 Forms\Components\TextInput::make('direccion'),
                 Forms\Components\TextInput::make('ciudad')

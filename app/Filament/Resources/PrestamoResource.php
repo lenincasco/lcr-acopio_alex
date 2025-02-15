@@ -3,15 +3,12 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\PrestamoResource\Pages;
-use App\Filament\Resources\PrestamoResource\RelationManagers;
 use App\Models\Prestamo;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 use Carbon\Carbon;
 
@@ -32,41 +29,32 @@ class PrestamoResource extends Resource
                 Forms\Components\TextInput::make('plazo_meses')
                     ->label('Plazo (meses)')
                     ->numeric()
-                    ->regex('/^\d+(\.\d{1,2})?$/')
+                    ->regex('/^\d+(\.\d{1,3})?$/')
                     ->reactive()
-                    ->required(),
+                    ->required()
+                    ->afterStateUpdated(function ($set, $get) {
+                        self::caculate($set, $get);
+                        self::calculateDueDate($set, $get);
+                    }),
                 Forms\Components\TextInput::make('interes')
                     ->label('Interés (%)')
                     ->required()
-                    ->regex('/^\d+(\.\d{1,2})?$/')
+                    ->regex('/^\d+(\.\d{1,3})?$/')
                     ->numeric()
                     ->reactive()
-                    ->afterStateUpdated(function ($set, $state, $get) {
-                        // Calcular el monto de interés
-                        $monto = $get('monto'); // Obtener el monto actual
-                        $plazo = $get('plazo_meses'); // Obtener el plazo
-                        if ($state && $monto) {
-                            $montoInteres = ($monto * $state * $plazo) / 100; // Calcular el monto de interés
-                            $set('monto_interes', $montoInteres);
-                            $set('monto_total', $montoInteres + $monto);
-
-                        }
+                    ->debounce(500)
+                    ->afterStateUpdated(function ($set, $get) {
+                        self::caculate($set, $get);
                     }),
                 Forms\Components\TextInput::make('monto')
                     ->label('Monto C$')
                     ->required()
-                    ->regex('/^\d+(\.\d{1,2})?$/')
+                    ->regex('/^\d+(\.\d{1,3})?$/')
                     ->numeric()
                     ->reactive()
-                    ->afterStateUpdated(function ($set, $state, $get) {
-                        // Calcular el monto de interés
-                        $interes = $get('interes'); // Obtener el interés actual
-                        $plazo = $get('plazo_meses'); // Obtener el interés actual
-                        if ($state && $interes) {
-                            $montoInteres = ($state * $interes * $plazo) / 100; // Calcular el monto de interés
-                            $set('monto_interes', $montoInteres);
-                            $set('monto_total', $montoInteres + $state);
-                        }
+                    ->debounce(500)
+                    ->afterStateUpdated(function ($set, $get) {
+                        self::caculate($set, $get);
                     }),
                 Forms\Components\TextInput::make('monto_interes')
                     ->label('Monto Interes C$')
@@ -78,60 +66,70 @@ class PrestamoResource extends Resource
                     ->readOnly(),
                 Forms\Components\DatePicker::make('fecha_desembolso')
                     ->label('Fecha de Desembolso')
+                    ->displayFormat('d-m-Y')
                     ->required()
                     ->reactive()
-                    ->afterStateUpdated(function ($set, $state, $get) {
-                        // Obtener el plazo actual y la fecha de desembolso
-                        $plazo = (int) $get('plazo_meses'); // Asegúrate de convertirlo a entero
-                        $fechaDesembolso = $get('fecha_desembolso');
-
-                        // Calcular la fecha de vencimiento
-                        if ($state && $fechaDesembolso && $plazo > 0) { // Verifica que el plazo sea mayor que 0
-                            $fechaVencimiento = Carbon::parse($fechaDesembolso)->addMonths($plazo)->format('Y-m-d');
-                            $set('fecha_vencimiento', $fechaVencimiento);
-                        }
+                    ->debounce(500)
+                    ->afterStateUpdated(function ($set, $get) {
+                        self::calculateDueDate($set, $get);
                     }),
 
                 Forms\Components\TextInput::make('volumen_estimado')
                     ->label('Volumen Estimado (quintales)')
-                    ->regex('/^\d+(\.\d{1,2})?$/')
+                    ->regex('/^\d+(\.\d{1,4})?$/')
                     ->numeric()
                     ->required(),
 
                 Forms\Components\TextInput::make('precio_referencia')
                     ->label('Precio de Referencia')
-                    ->regex('/^\d+(\.\d{1,2})?$/')
+                    ->regex('/^\d+(\.\d{1,4})?$/')
                     ->numeric()
                     ->required(),
 
 
                 Forms\Components\DatePicker::make('fecha_vencimiento')
                     ->label('Fecha de Vencimiento')
-                    ->required(),
+                    ->displayFormat('d-m-Y')
+                    ->required()
+                    ->reactive(),
 
                 Forms\Components\TextInput::make('tipo_cambio')
                     ->label('Tipo de Cambio')
-                    ->regex('/^\d+(\.\d{1,2})?$/')
+                    ->regex('/^\d+(\.\d{1,4})?$/')
                     ->numeric()
                     ->default(36.6243)
             ]);
     }
 
-    protected function calculateInterest($set, $monto, $interes)
+    private static function caculate($set, $get): void
     {
-        if ($monto && $interes) {
-            $montoInteres = ($monto * $interes) / 100; // Calcular el monto de interés
-            $set('precio_referencia', $montoInteres);
+        $monto = $get('monto') ?? 0;
+        $plazo = $get('plazo_meses') ?? 0;
+        $interes = $get('interes') ?? 0;
+        if ($interes && $monto) {
+            $monto == '' ? $monto = 0 : $monto;
+            $plazo == '' ? $plazo = 0 : $plazo;
+            $interes == '' ? $interes = 0 : $interes;
+            $montoInteres = ($monto * $interes * $plazo) / 100; // Calcular el monto de interés
+            $set('monto_interes', $montoInteres);
+            $set('monto_total', $montoInteres + $monto);
         }
     }
 
-    protected function calculateDueDate($set, $fechaDesembolso, $plazoMeses)
+    protected static function calculateDueDate($set, $get)
     {
-        if ($fechaDesembolso && $plazoMeses) {
-            $fechaVencimiento = \Carbon\Carbon::parse($fechaDesembolso)->addMonths($plazoMeses);
-            $set('fecha_vencimiento', $fechaVencimiento->format('Y-m-d')); // Formatear la fecha
+        $plazo = (int) $get('plazo_meses');
+        $fechaDesembolso = $get('fecha_desembolso');
+
+        if ($fechaDesembolso && $plazo > 0) {
+            $fechaVencimiento = \Carbon\Carbon::parse($fechaDesembolso)
+                ->addMonths($plazo)
+                ->toDateString(); // Devuelve la fecha en formato Y-m-d
+            $set('fecha_vencimiento', $fechaVencimiento);
         }
     }
+
+
 
     public static function table(Table $table): Table
     {

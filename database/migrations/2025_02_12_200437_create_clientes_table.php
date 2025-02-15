@@ -13,6 +13,7 @@ return new class extends Migration {
         Schema::create('clientes', function (Blueprint $table) {
             $table->id();
             $table->string('nombrecompleto');
+            $table->enum('tipo', ['CLIENTE', 'CONSIGNATARIO']);
             $table->string('cedula')->nullable();
             $table->string('direccion')->nullable();
             $table->string('ciudad')->default('Sin especificar');

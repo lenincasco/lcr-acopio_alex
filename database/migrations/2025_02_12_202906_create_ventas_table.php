@@ -19,12 +19,13 @@ return new class extends Migration {
             $table->foreignId('editado_por')->nullable()->constrained('users')->onDelete('cascade');
 
             $table->date('fecha_venta');
+            $table->enum('tipo_cafe', ['UVA', 'PERGAMINO', 'MARA']);
             $table->integer('cantidad_sacos');
             $table->integer('tara_saco');
             $table->decimal('peso_bruto', 8, 2);
             $table->decimal('peso_neto', 8, 2);
             $table->decimal('humedad', 5, 2);
-            $table->decimal('imperfeccion', 5, 2);
+            $table->decimal('imperfeccion', 5, 2)->nullable();
 
             $table->decimal('tipo_cambio', 8, 3)->default(0);
             $table->decimal('precio_unitario', 10, 2)->default(0);

@@ -36,12 +36,29 @@ class VentaResource extends Resource
                     ->required()
                     ->date('d-M-y'),
 
+                Forms\Components\Select::make('tipo_cafe')
+                    ->label('Tipo de Café')
+                    ->options([
+                        'UVA' => 'UVA',
+                        'PERGAMINO' => 'PERGAMINO',
+                        'MARA' => 'MARA',
+                    ])
+                    ->required(),
+                // Campo para la humedad (se puede convertir a numérico si es necesario)
+                Forms\Components\TextInput::make('humedad')
+                    ->label('Humedad %')
+                    ->required()
+                    ->numeric()
+                    ->step(0.01)
+                    ->minValue(0),
+
                 Forms\Components\TextInput::make('cantidad_sacos')
                     ->label('Cantidad de Sacos')
                     ->required()
                     ->reactive()
                     ->regex('/^\d+(\.\d{1,2})?$/')
                     ->numeric()
+                    ->debounce(500)
                     ->afterStateUpdated(function ($set, $state) {
                         // Calcular la tara por saco
                         if ($state) {
@@ -63,6 +80,7 @@ class VentaResource extends Resource
                     ->regex('/^\d+(\.\d{1,2})?$/')
                     ->numeric()
                     ->reactive()
+                    ->debounce(500)
                     ->afterStateUpdated(function ($set, $state, $get) {
                         $tara = $get('tara_saco');
                         if ($state && $tara) {
@@ -99,6 +117,7 @@ class VentaResource extends Resource
                     ->label('Precio Unitario')
                     ->numeric()
                     ->reactive()
+                    ->debounce(500)
                     ->afterStateUpdated(function ($set, $get) {
                         self::recalcularTotales($set, $get);
                     }),
@@ -112,6 +131,7 @@ class VentaResource extends Resource
                     ->label('IVA')
                     ->numeric()
                     ->reactive()
+                    ->debounce(500)
                     ->afterStateUpdated(function ($set, $get) {
                         self::recalcularTotales($set, $get);
                     }),

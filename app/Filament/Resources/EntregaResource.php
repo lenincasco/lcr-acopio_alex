@@ -34,10 +34,18 @@ class EntregaResource extends Resource
                 Forms\Components\Select::make('tipo_entrega')
                     ->label('Tipo de Entrega')
                     ->options([
-                        'COMPRA' => 'Compra',
-                        'ENTREGA' => 'Entrega',
+                        'COMPRA' => 'COMPRA',
+                        'ENTREGA' => 'ENTREGA',
                     ])
                     ->default('ENTREGA')
+                    ->required(),
+                Forms\Components\Select::make('tipo_cafe')
+                    ->label('Tipo de Café')
+                    ->options([
+                        'UVA' => 'Uva',
+                        'PERGAMINO' => 'Pergamino',
+                        'MARA' => 'Mara'
+                    ])
                     ->required(),
 
                 Forms\Components\DatePicker::make('fecha_entrega')
@@ -51,6 +59,7 @@ class EntregaResource extends Resource
                     ->reactive()
                     ->regex('/^\d+(\.\d{1,2})?$/')
                     ->numeric()
+                    ->debounce(500)
                     ->afterStateUpdated(function ($set, $state) {
                         // Calcular la tara por saco
                         if ($state) {
@@ -72,6 +81,7 @@ class EntregaResource extends Resource
                     ->regex('/^\d+(\.\d{1,2})?$/')
                     ->numeric()
                     ->reactive()
+                    ->debounce(500)
                     ->afterStateUpdated(function ($set, $state, $get) {
                         $tara = $get('tara_saco');
                         if ($state && $tara) {
@@ -82,12 +92,14 @@ class EntregaResource extends Resource
                 Forms\Components\TextInput::make('humedad')
                     ->label('Humedad %')
                     ->required()
-                    ->reactive(),
+                    ->reactive()
+                    ->debounce(500),
 
                 Forms\Components\TextInput::make('imperfeccion')
                     ->label('Imperfección %')
                     ->required()
-                    ->reactive(),
+                    ->reactive()
+                    ->debounce(500),
 
                 Forms\Components\TextInput::make('peso_neto')
                     ->label('Peso Neto')
@@ -96,7 +108,7 @@ class EntregaResource extends Resource
 
                 Forms\Components\TextInput::make('quintalaje_liquidable')
                     ->label('Quintalaje Liquidable')
-                    ->required(),
+                    ->required()
             ]);
     }
 
@@ -124,6 +136,8 @@ class EntregaResource extends Resource
                     ->sortable()
                     ->alignRight()
                     ->formatStateUsing(fn(string $state): string => number_format($state, 2)),
+                Tables\Columns\TextColumn::make('tipo_cafe')
+                    ->label('Tipo de Café'),
 
                 Tables\Columns\TextColumn::make('quintalaje_liquidable')
                     ->label('Peso Liquidable (Quintales)')

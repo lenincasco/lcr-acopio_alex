@@ -2,22 +2,23 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class Venta extends Model
+class Salida extends Model
 {
     /** @use HasFactory<\Database\Factories\VentaFactory> */
     use HasFactory;
 
-    protected $table = 'ventas';
+    protected $table = 'salidas';
 
     protected $fillable = [
         'cliente_id',
-        'fecha_venta',
+        'fecha_salida',
         'peso_bruto',
         'tara_saco',
         'cantidad_sacos',
+        'peso_saco',
         'peso_neto',
         'humedad',
         'imperfeccion',
@@ -25,10 +26,6 @@ class Venta extends Model
         'creado_por',
         'editado_por',
 
-        'precio_unitario',
-        'iva',
-        'monto_bruto',
-        'monto_neto',
         'observaciones',
     ];
 
@@ -51,25 +48,25 @@ class Venta extends Model
     {
         parent::booted();
 
-        static::created(function ($venta) {
+        static::created(function ($salida) {
 
             $inventarioGeneral = Inventario::where('tipo', 'entrada')
-                ->where('tipo_cafe', $venta->tipo_cafe)
-                ->where('humedad', $venta->humedad)
+                ->where('tipo_cafe', $salida->tipo_cafe)
+                ->where('humedad', $salida->humedad)
                 ->first();
 
             if ($inventarioGeneral) {
                 // Reducir la cantidad y el peso neto del inventario general
-                $inventarioGeneral->cantidad_sacos -= $venta->cantidad_sacos;
-                $inventarioGeneral->peso_neto -= $venta->peso_neto;
+                $inventarioGeneral->cantidad_sacos -= $salida->cantidad_sacos;
+                $inventarioGeneral->peso_neto -= $salida->peso_neto;
 
                 $inventarioGeneral->cantidad_sacos = max(0, $inventarioGeneral->cantidad_sacos);
                 $inventarioGeneral->peso_neto = max(0, $inventarioGeneral->peso_neto);
 
                 $inventarioGeneral->save();
-                \Log::info("Inventario actualizado después de la venta ID: {$venta->id}");
+                \Log::info("Inventario actualizado después de la venta ID: {$salida->id}");
             } else {
-                \Log::warning("No se encontró registro de inventario general para actualizar después de la venta ID: {$venta->id}");
+                \Log::warning("No se encontró registro de inventario general para actualizar después de la salida ID: {$salida->id}");
             }
         });
     }

@@ -23,7 +23,8 @@ class Entrega extends Model
         'creado_por',
         'editado_por',
         'tipo_entrega', //Puede ser de tipo "COMPRA" o "ENTREGA"
-        'liquidada'//NEW
+        'liquidada',//NEW
+        'tipo_cafe', //NEW
     ];
     public function proveedor()
     {
@@ -48,51 +49,77 @@ class Entrega extends Model
     //NEW update Inventario
     protected static function booted()
     {
-        static::creating(function ($entrega) {
-            if (is_null($entrega->proveedor_id)) {
-                // Generar un ID alternativo basado en fecha y hora (timestamp en milisegundos)
-                $fallbackProveedorId = 'cliente_general_' . now()->getPreciseTimestamp(3);
-
-                // Asignar el ID alternativo al proveedor_id
-                $entrega->proveedor_id = $fallbackProveedorId;
-
-                \Log::warning("Proveedor ID nulo detectado al crear Entrega. Generando ID alternativo: {$fallbackProveedorId}. Considera revisar la lógica de creación de Entregas.");
-            }
-        });
-
         static::created(function ($entrega) {
-            Inventario::create([
-                'entrega_id' => $entrega->id,
-                'fecha' => $entrega->fecha_entrega,
-                'tipo' => 'entrada',
-                'cantidad' => $entrega->cantidad_sacos,
-                'peso_neto' => $entrega->peso_neto,
-            ]);
-        });
-
-        static::updated(function ($entrega) {
-            $inventario = Inventario::where('entrega_id', $entrega->id)->first();
+            // Buscar el registro de inventario acumulado para esta combinación
+            $inventario = Inventario::where('tipo', 'ENTREGA')
+                ->where('tipo_cafe', $entrega->tipo_cafe)
+                ->where('humedad', $entrega->humedad)
+                ->first();
 
             if ($inventario) {
+                // Incrementar la cantidad y el peso neto acumulado
+                $inventario->increment('cantidad', $entrega->cantidad_sacos);
+                $inventario->increment('peso_neto', $entrega->peso_neto);
+                // Actualizar la fecha de última modificación
                 $inventario->fecha = $entrega->fecha_entrega;
-                $inventario->tipo = $entrega->tipo_entrega;
-                $inventario->cantidad = $entrega->cantidad_sacos;
-                $inventario->peso_neto = $entrega->peso_neto;
-
                 $inventario->save();
             } else {
-                \Log::warning("No se encontró Inventario para la Entrega ID: {$entrega->id} al actualizar Entrega.");
+                // Crear un nuevo registro acumulado si no existe
+                Inventario::create([
+                    // No incluimos 'entrega_id' porque es acumulado
+                    'fecha' => $entrega->fecha_entrega,
+                    'tipo' => 'ENTREGA',
+                    'tipo_cafe' => $entrega->tipo_cafe,
+                    'humedad' => $entrega->humedad,
+                    'cantidad_sacos' => $entrega->cantidad_sacos,
+                    'peso_neto' => $entrega->peso_neto,
+                ]);
             }
         });
 
-        static::deleted(function ($entrega) {
-            $inventario = Inventario::where('entrega_id', $entrega->id)->first();
+        // Similarmente, en el evento 'updated' se debería calcular la diferencia
+        // entre el nuevo valor y el anterior y actualizar el registro acumulado.
+        static::updated(function ($entrega) {
+            // Se requiere tener el valor original para calcular la diferencia
+            $originalCantidad = $entrega->getOriginal('cantidad_sacos');
+            $originalPesoNeto = $entrega->getOriginal('peso_neto');
+
+            // Buscar el registro acumulado correspondiente. Puede requerirse identificar
+            // el registro anterior en caso de que se haya modificado el tipo de café o humedad.
+            $inventario = Inventario::where('tipo', 'ENTREGA')
+                ->where('tipo_cafe', $entrega->tipo_cafe)
+                ->where('humedad', $entrega->humedad)
+                ->first();
 
             if ($inventario) {
-                $inventario->delete();
-                \Log::info("Inventario eliminado para Entrega ID: {$entrega->id} debido a la eliminación de la Entrega.");
+                // Calcular las diferencias
+                $diffCantidad = $entrega->cantidad_sacos - $originalCantidad;
+                $diffPesoNeto = $entrega->peso_neto - $originalPesoNeto;
+
+                // Actualizar acumulados
+                $inventario->increment('cantidad', $diffCantidad);
+                $inventario->increment('peso_neto', $diffPesoNeto);
+                // Actualizar fecha si es necesario
+                $inventario->fecha = $entrega->fecha_entrega;
+                $inventario->save();
             } else {
-                \Log::warning("No se encontró Inventario para la Entrega ID: {$entrega->id} al eliminar Entrega. Posible inconsistencia.");
+                \Log::warning("No se encontró registro acumulado para actualizar la Entrega ID: {$entrega->id}");
+            }
+        });
+
+        // En 'deleted', se resta la cantidad y el peso neto del registro acumulado
+        static::deleted(function ($entrega) {
+            $inventario = Inventario::where('tipo', 'ENTREGA')
+                ->where('tipo_cafe', $entrega->tipo_cafe)
+                ->where('humedad', $entrega->humedad)
+                ->first();
+
+            if ($inventario) {
+                $inventario->decrement('cantidad', $entrega->cantidad_sacos);
+                $inventario->decrement('peso_neto', $entrega->peso_neto);
+                $inventario->save();
+            } else {
+                \Log::warning("No se encontró registro acumulado para eliminar la Entrega ID: {$entrega->id}");
             }
         });
     }

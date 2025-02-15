@@ -11,14 +11,14 @@ class CreateInventariosTable extends Migration
         Schema::create('inventarios', function (Blueprint $table) {
             $table->id();
 
-            // Relación con la entrega que se registra en el inventario
-            $table->unsignedBigInteger('entrega_id');
-            $table->foreign('entrega_id')->references('id')->on('entregas')->onDelete('cascade');
 
-            $table->date('fecha');
-            $table->string('tipo')->default('entrada');
-            $table->integer('cantidad')->default(0);
-            $table->decimal('peso_neto', 10, 2)->nullable();
+            $table->date('fecha')->nullable()->comment('Fecha de la última actualización');
+            $table->enum('tipo', ['ENTREGA', 'COMPRA', 'SALIDA', 'VENTA']);
+            $table->enum('tipo_cafe', ['UVA', 'PERGAMINO', 'MARA']);
+            $table->decimal('humedad', 5, 2);
+
+            $table->integer('cantidad_sacos')->default(0);
+            $table->decimal('peso_neto', 10, 2)->default(0);
 
             $table->timestamps();
         });

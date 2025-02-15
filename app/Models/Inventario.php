@@ -9,11 +9,12 @@ class Inventario extends Model
     protected $table = 'inventarios';
 
     protected $fillable = [
-        'entrega_id',
         'fecha',
         'tipo',
-        'cantidad',
+        'cantidad_sacos',
         'peso_neto',
+        'tipo_cafe',
+        'humedad',
     ];
 
     /**
@@ -24,4 +25,5 @@ class Inventario extends Model
     {
         return $this->belongsTo(Entrega::class);
     }
+
 }
