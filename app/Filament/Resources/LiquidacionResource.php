@@ -66,6 +66,7 @@ class LiquidacionResource extends Resource
                         Forms\Components\TextInput::make('usuario_liquida')
                             ->label('Usuario que Liquida')
                             ->default(auth()->id())
+                            ->extraInputAttributes(['class' => 'pointer-events-none'])
                             ->readOnly(),
 
                         Forms\Components\Textarea::make('observacion')
@@ -98,11 +99,13 @@ class LiquidacionResource extends Resource
 
                                 Forms\Components\TextInput::make('cantidad_sacos')
                                     ->label('Cantidad de Sacos')
+                                    ->extraInputAttributes(['class' => 'pointer-events-none'])
                                     ->readOnly()
                                     ->required(),
 
                                 Forms\Components\TextInput::make('peso_neto')
                                     ->label('Peso Neto')
+                                    ->extraInputAttributes(['class' => 'pointer-events-none'])
                                     ->readOnly()
                                     ->required(),
 
@@ -114,11 +117,13 @@ class LiquidacionResource extends Resource
 
                                 Forms\Components\TextInput::make('quintalaje_liquidable')
                                     ->label('Quintalaje Liquidable')
+                                    ->extraInputAttributes(['class' => 'pointer-events-none'])
                                     ->readOnly()
                                     ->required(),
 
                                 Forms\Components\TextInput::make('monto_entrega')
                                     ->label('Monto de la Entrega')
+                                    ->extraInputAttributes(['class' => 'pointer-events-none'])
                                     ->readOnly()
                                     ->reactive()
                                     ->required()
@@ -167,6 +172,7 @@ class LiquidacionResource extends Resource
 
                         Forms\Components\TextInput::make('total_qq_liquidados')
                             ->label('Total QQ Liquidados')
+                            ->extraInputAttributes(['class' => 'pointer-events-none'])
                             ->readOnly()
                             ->reactive()
                             ->required(),
@@ -177,12 +183,14 @@ class LiquidacionResource extends Resource
 
                         Forms\Components\TextInput::make('monto_bruto') // Monto Bruto (antes de créditos)
                             ->label('Monto Bruto')
+                            ->extraInputAttributes(['class' => 'pointer-events-none'])
                             ->readOnly()
                             ->reactive()
                             ->required(),
 
                         Forms\Components\TextInput::make('credito_disponible_proveedor') // Campo informativo: Crédito Disponible
                             ->label('Crédito Disponible del Proveedor')
+                            ->extraInputAttributes(['class' => 'pointer-events-none'])
                             ->readOnly()
                             ->hidden(function ($get) {
                                 return $get('credito_disponible_proveedor') === 0;
@@ -206,6 +214,7 @@ class LiquidacionResource extends Resource
 
                         Forms\Components\TextInput::make('monto_neto') // Monto Neto (después de créditos)
                             ->label('Monto Neto a Pagar')
+                            ->extraInputAttributes(['class' => 'pointer-events-none'])
                             ->readOnly()
                             ->reactive()
                             ->required(),

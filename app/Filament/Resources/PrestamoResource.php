@@ -59,10 +59,12 @@ class PrestamoResource extends Resource
                 Forms\Components\TextInput::make('monto_interes')
                     ->label('Monto Interes C$')
                     ->required()
+                    ->extraInputAttributes(['class' => 'pointer-events-none'])
                     ->readOnly(),
                 Forms\Components\TextInput::make('monto_total')
                     ->label('Monto Total C$')
                     ->required()
+                    ->extraInputAttributes(['class' => 'pointer-events-none'])
                     ->readOnly(),
                 Forms\Components\DatePicker::make('fecha_desembolso')
                     ->label('Fecha de Desembolso')

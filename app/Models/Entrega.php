@@ -51,14 +51,14 @@ class Entrega extends Model
     {
         static::created(function ($entrega) {
             // Buscar el registro de inventario acumulado para esta combinación
-            $inventario = Inventario::where('tipo', 'ENTREGA')
+            $inventario = Inventario::where('humedad', $entrega->humedad)
                 ->where('tipo_cafe', $entrega->tipo_cafe)
                 ->where('humedad', $entrega->humedad)
                 ->first();
 
             if ($inventario) {
                 // Incrementar la cantidad y el peso neto acumulado
-                $inventario->increment('cantidad', $entrega->cantidad_sacos);
+                $inventario->increment('cantidad_sacos', $entrega->cantidad_sacos);
                 $inventario->increment('peso_neto', $entrega->peso_neto);
                 // Actualizar la fecha de última modificación
                 $inventario->fecha = $entrega->fecha_entrega;
@@ -68,7 +68,7 @@ class Entrega extends Model
                 Inventario::create([
                     // No incluimos 'entrega_id' porque es acumulado
                     'fecha' => $entrega->fecha_entrega,
-                    'tipo' => 'ENTREGA',
+                    'tipo' => 'ENTRADA',
                     'tipo_cafe' => $entrega->tipo_cafe,
                     'humedad' => $entrega->humedad,
                     'cantidad_sacos' => $entrega->cantidad_sacos,
@@ -86,7 +86,7 @@ class Entrega extends Model
 
             // Buscar el registro acumulado correspondiente. Puede requerirse identificar
             // el registro anterior en caso de que se haya modificado el tipo de café o humedad.
-            $inventario = Inventario::where('tipo', 'ENTREGA')
+            $inventario = Inventario::where('tipo', 'ENTRADA')
                 ->where('tipo_cafe', $entrega->tipo_cafe)
                 ->where('humedad', $entrega->humedad)
                 ->first();
@@ -109,7 +109,7 @@ class Entrega extends Model
 
         // En 'deleted', se resta la cantidad y el peso neto del registro acumulado
         static::deleted(function ($entrega) {
-            $inventario = Inventario::where('tipo', 'ENTREGA')
+            $inventario = Inventario::where('tipo', 'ENTRADA')
                 ->where('tipo_cafe', $entrega->tipo_cafe)
                 ->where('humedad', $entrega->humedad)
                 ->first();

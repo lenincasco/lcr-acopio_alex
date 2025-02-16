@@ -73,6 +73,7 @@ class EntregaResource extends Resource
                     ->label('Tara por saco')
                     ->required()
                     ->reactive()
+                    ->extraInputAttributes(['class' => 'pointer-events-none'])
                     ->readOnly(),
 
                 Forms\Components\TextInput::make('peso_bruto')
@@ -103,6 +104,7 @@ class EntregaResource extends Resource
 
                 Forms\Components\TextInput::make('peso_neto')
                     ->label('Peso Neto')
+                    ->extraInputAttributes(['class' => 'pointer-events-none'])
                     ->readOnly()
                     ->reactive(),
 

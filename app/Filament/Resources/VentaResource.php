@@ -5,7 +5,9 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\VentaResource\Pages;
 use App\Models\Venta;
 use Filament\Forms;
+use Filament\Forms\Components\Section;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -24,122 +26,138 @@ class VentaResource extends Resource
                     ->label('Cliente')
                     ->relationship('cliente', 'nombrecompleto') // Relación con la tabla de clientees
                     ->searchable()
-                    ->required()
-                    ->createOptionForm([
-                        Forms\Components\TextInput::make('nombrecompleto')
-                            ->label('Nombre')
-                            ->required()
-                    ]),
+                    ->required(),
 
                 Forms\Components\DatePicker::make('fecha_venta')
                     ->label('Fecha venta')
                     ->required()
                     ->date('d-M-y'),
 
-                Forms\Components\Select::make('tipo_cafe')
-                    ->label('Tipo de Café')
-                    ->options([
-                        'UVA' => 'UVA',
-                        'PERGAMINO' => 'PERGAMINO',
-                        'MARA' => 'MARA',
-                    ])
-                    ->required(),
-                // Campo para la humedad (se puede convertir a numérico si es necesario)
-                Forms\Components\TextInput::make('humedad')
-                    ->label('Humedad %')
-                    ->required()
-                    ->numeric()
-                    ->step(0.01)
-                    ->minValue(0),
+                Section::make('Datos del café') // Encabezado de la sección
+                    ->columns(3)
+                    ->schema([
+                        Forms\Components\Select::make('tipo_cafe')
+                            ->label('Tipo de Café')
+                            ->options([
+                                'UVA' => 'UVA',
+                                'PERGAMINO' => 'PERGAMINO',
+                                'MARA' => 'MARA',
+                            ])
+                            ->required(),
+                        // Campo para la humedad (se puede convertir a numérico si es necesario)
+                        Forms\Components\TextInput::make('humedad')
+                            ->label('Humedad %')
+                            ->required()
+                            ->numeric()
+                            ->step(0.01)
+                            ->minValue(0),
+                        Forms\Components\TextInput::make('imperfeccion')
+                            ->label('Imperfección %')
+                            ->required(),
+                    ]),
+                Section::make('Peso')
+                    ->columns(4)
+                    ->schema([
 
-                Forms\Components\TextInput::make('cantidad_sacos')
-                    ->label('Cantidad de Sacos')
-                    ->required()
-                    ->reactive()
-                    ->regex('/^\d+(\.\d{1,2})?$/')
-                    ->numeric()
-                    ->debounce(500)
-                    ->afterStateUpdated(function ($set, $state) {
-                        // Calcular la tara por saco
-                        if ($state) {
-                            // Redondear hacia arriba la tara
-                            $tara = ceil($state / 2); // Cada saco es media libra
-                            $set('tara_saco', $tara / 100); // Asigna la tara calculada al campo 'tara'
-                        }
-                    }),
+                        Forms\Components\TextInput::make('cantidad_sacos')
+                            ->label('Cantidad de Sacos')
+                            ->required()
+                            ->reactive()
+                            ->regex('/^\d+(\.\d{1,2})?$/')
+                            ->numeric()
+                            ->debounce(500)
+                            ->afterStateUpdated(function ($set, $get, $state) {
+                                $tipoCafe = $get('tipo_cafe'); // Obtener el tipo de café seleccionado
+                                $stockDisponible = \App\Models\Inventario::where('tipo_cafe', $tipoCafe)->sum('cantidad_sacos'); // Consultar la cantidad disponible
+                    
+                                $tara = ceil($state / 2); // Cada saco es media libra
+                                $set('tara_saco', $tara / 100);
 
-                Forms\Components\TextInput::make('tara_saco')
-                    ->label('Tara por saco')
-                    ->required()
-                    ->reactive()
-                    ->readOnly(),
+                                if ($get('tipo_cafe') == '') {
+                                    $set('cantidad_sacos', 0);
+                                    Notification::make()
+                                        ->title('Tipo de Café no seleccionado')
+                                        ->body('Por favor, seleccione un tipo de café antes de ingresar cantidades.')
+                                        ->warning()
+                                        ->send();
+                                }
+                                if ($state > $stockDisponible && $get('tipo_cafe') != '') {
+                                    $set('cantidad_sacos', $stockDisponible); // Ajustar la cantidad al máximo disponible
+                                    Notification::make()
+                                        ->title('Stock insuficiente')
+                                        ->body("Solo hay $stockDisponible sacos disponibles para el tipo de café seleccionado.")
+                                        ->danger()
+                                        ->send();
+                                }
+                            }),
 
-                Forms\Components\TextInput::make('peso_bruto')
-                    ->label('Peso Bruto')
-                    ->required()
-                    ->regex('/^\d+(\.\d{1,2})?$/')
-                    ->numeric()
-                    ->reactive()
-                    ->debounce(500)
-                    ->afterStateUpdated(function ($set, $state, $get) {
-                        $tara = $get('tara_saco');
-                        if ($state && $tara) {
-                            $set('peso_neto', $state - $tara);
-                        }
-                    }),
+                        Forms\Components\TextInput::make('peso_bruto')
+                            ->label('Peso Bruto')
+                            ->required()
+                            ->regex('/^\d+(\.\d{1,2})?$/')
+                            ->numeric()
+                            ->reactive()
+                            ->debounce(500)
+                            ->afterStateUpdated(function ($set, $state, $get) {
+                                $tara = $get('tara_saco');
+                                if ($state && $tara) {
+                                    $set('peso_neto', $state - $tara);
+                                }
+                            }),
+                        Forms\Components\TextInput::make('tara_saco')
+                            ->label('Tara por saco')
+                            ->reactive()
+                            ->extraInputAttributes(['class' => 'pointer-events-none'])
+                            ->readOnly(),
 
-                Forms\Components\TextInput::make('humedad')
-                    ->label('Humedad %')
-                    ->required(),
+                        Forms\Components\TextInput::make('peso_neto')
+                            ->label('PESO NETO')
+                            ->readOnly()
+                            ->extraInputAttributes(['class' => 'pointer-events-none appearance-none border-none bg-transparent'])
+                            ->reactive()
+                            ->afterStateUpdated(function ($set, $get) {
+                                self::recalcularTotales($set, $get);
+                            }),
+                    ]),
+                Section::make('Precios')
+                    ->columns(5)
+                    ->schema([
+                        Forms\Components\TextInput::make('precio_unitario')
+                            ->label('Precio Unitario')
+                            ->numeric()
+                            ->reactive()
+                            ->debounce(500)
+                            ->afterStateUpdated(function ($set, $get) {
+                                self::recalcularTotales($set, $get);
+                            }),
 
-                Forms\Components\TextInput::make('imperfeccion')
-                    ->label('Imperfección %')
-                    ->required(),
+                        Forms\Components\TextInput::make('iva')
+                            ->label('IVA %')
+                            ->numeric()
+                            ->reactive()
+                            ->debounce(500)
+                            ->afterStateUpdated(function ($set, $get) {
+                                self::recalcularTotales($set, $get);
+                            }),
+                        Forms\Components\TextInput::make('tipo_cambio')
+                            ->label('Tipo de Cambio a USD')
+                            ->numeric()
+                            ->nullable()
+                            ->reactive()
+                            ->afterStateUpdated(function ($set, $get) {
+                                self::recalcularTotales($set, $get);
+                            }),
 
-                Forms\Components\TextInput::make('peso_neto')
-                    ->label('Peso Neto')
-                    ->readOnly()
-                    ->reactive()
-                    ->afterStateUpdated(function ($set, $get) {
-                        self::recalcularTotales($set, $get);
-                    }),
+                        Forms\Components\TextInput::make('monto_bruto')
+                            ->label('Monto Bruto')
+                            ->readOnly()
+                            ->extraInputAttributes(['class' => 'pointer-events-none']),
 
-                Forms\Components\TextInput::make('tipo_cambio')
-                    ->label('Tipo de Cambio')
-                    ->numeric()
-                    ->nullable()
-                    ->reactive()
-                    ->afterStateUpdated(function ($set, $get) {
-                        self::recalcularTotales($set, $get);
-                    }),
-
-                Forms\Components\TextInput::make('precio_unitario')
-                    ->label('Precio Unitario')
-                    ->numeric()
-                    ->reactive()
-                    ->debounce(500)
-                    ->afterStateUpdated(function ($set, $get) {
-                        self::recalcularTotales($set, $get);
-                    }),
-
-                Forms\Components\TextInput::make('monto_bruto')
-                    ->label('Monto Bruto')
-                    ->numeric()
-                    ->readOnly(),
-
-                Forms\Components\TextInput::make('iva')
-                    ->label('IVA')
-                    ->numeric()
-                    ->reactive()
-                    ->debounce(500)
-                    ->afterStateUpdated(function ($set, $get) {
-                        self::recalcularTotales($set, $get);
-                    }),
-
-                Forms\Components\TextInput::make('monto_neto')
-                    ->label('Monto Neto')
-                    ->numeric()
-                    ->readOnly(),
+                        Forms\Components\TextInput::make('monto_neto')
+                            ->label('MONTO NETO C$')
+                            ->readOnly()
+                            ->extraInputAttributes(['class' => 'pointer-events-none']),
+                    ]),
 
                 Forms\Components\Textarea::make('observaciones')
                     ->label('Observaciones')
@@ -171,6 +189,8 @@ class VentaResource extends Resource
                     ->sortable()
                     ->alignRight()
                     ->formatStateUsing(fn(string $state): string => number_format($state, 2)),
+                Tables\Columns\TextColumn::make('tipo_cafe')
+                    ->label('Tipo de Café'),
                 Tables\Columns\TextColumn::make('monto_neto')
                     ->label('Monto Neto')
                     ->sortable()

@@ -10,7 +10,6 @@ class Inventario extends Model
 
     protected $fillable = [
         'fecha',
-        'tipo',
         'cantidad_sacos',
         'peso_neto',
         'tipo_cafe',

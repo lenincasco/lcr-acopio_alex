@@ -49,11 +49,9 @@ class Venta extends Model
 
     protected static function booted()
     {
-        parent::booted();
-
         static::created(function ($venta) {
 
-            $inventarioGeneral = Inventario::where('tipo', 'entrada')
+            $inventarioGeneral = Inventario::where('humedad', $venta->humedad)
                 ->where('tipo_cafe', $venta->tipo_cafe)
                 ->where('humedad', $venta->humedad)
                 ->first();

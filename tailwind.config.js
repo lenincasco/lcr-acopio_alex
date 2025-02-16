@@ -8,7 +8,15 @@ export default {
         './resources/**/*.blade.php',
         './resources/**/*.js',
         './resources/**/*.vue',
+        './app/Filament/**/*.php',
+        './resources/css/app.css',
     ],
+    safelist: [
+    'pointer-events-none',
+    'appearance-none',
+    'border-none',
+    'bg-transparent'
+  ],
     theme: {
         extend: {
             fontFamily: {

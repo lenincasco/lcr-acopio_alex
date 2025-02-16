@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\InventarioResource\Widgets;
 
-use App\Models\Entrega;
+use App\Models\Inventario;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
@@ -15,9 +15,9 @@ class InventarioStats extends BaseWidget
   protected function getStats(): array
   {
     // Sumar la cantidad de café disponible por cada tipo
-    $uva = Entrega::where('tipo_cafe', 'UVA')->sum('cantidad_sacos');
-    $pergamino = Entrega::where('tipo_cafe', 'PERGAMINO')->sum('cantidad_sacos');
-    $mara = Entrega::where('tipo_cafe', 'MARA')->sum('cantidad_sacos');
+    $uva = Inventario::where('tipo_cafe', 'UVA')->sum('cantidad_sacos');
+    $pergamino = Inventario::where('tipo_cafe', 'PERGAMINO')->sum('cantidad_sacos');
+    $mara = Inventario::where('tipo_cafe', 'MARA')->sum('cantidad_sacos');
 
     return [
       Stat::make('Café UVA', $uva),

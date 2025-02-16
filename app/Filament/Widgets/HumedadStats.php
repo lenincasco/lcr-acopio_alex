@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\InventarioResource\Widgets;
 
-use App\Models\Entrega;
+use App\Models\Inventario;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
@@ -17,7 +17,7 @@ class HumedadStats extends BaseWidget
   {
     $stats = [];
     //listar por humedad
-    $data = Entrega::selectRaw('humedad, SUM(cantidad_sacos) as total_sacos')
+    $data = Inventario::selectRaw('humedad, SUM(cantidad_sacos) as total_sacos')
       ->groupBy('humedad')
       ->orderBy('humedad', 'asc')
       ->get();

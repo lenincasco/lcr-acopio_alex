@@ -13,7 +13,6 @@ class CreateInventariosTable extends Migration
 
 
             $table->date('fecha')->nullable()->comment('Fecha de la última actualización');
-            $table->enum('tipo', ['ENTREGA', 'COMPRA', 'SALIDA', 'VENTA']);
             $table->enum('tipo_cafe', ['UVA', 'PERGAMINO', 'MARA']);
             $table->decimal('humedad', 5, 2);
 
