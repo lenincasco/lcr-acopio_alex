@@ -32,13 +32,28 @@ class ClienteResource extends Resource
                         'CONSIGNATARIO' => 'Consignatario',
                     ])
                     ->required(),
-                Forms\Components\TextInput::make('cedula'),
-                Forms\Components\TextInput::make('direccion'),
+                Forms\Components\TextInput::make('cedula')
+                    ->label('Cédula')
+                    ->string()
+                    ->regex('/^\d{3}-\d{6}-\d{4}[A-Z]$/')
+                    ->mask('999-999999-9999a')
+                    ->placeholder('XXX-XXXXXX-XXXXX')
+                    ->extraInputAttributes([
+                        'oninput' => "this.value = this.value.toUpperCase()",
+                        'onpaste' => "this.value = this.value.toUpperCase()"
+                    ])
+                    ->unique(ignoreRecord: true),
+                Forms\Components\TextInput::make('dirección'),
                 Forms\Components\TextInput::make('ciudad')
                     ->required(),
                 Forms\Components\TextInput::make('municipio')
                     ->required(),
                 Forms\Components\TextInput::make('celular')
+                    ->required()
+                    ->regex('/^[0-9]{8}$/')
+                    ->mask('99999999')
+                    ->placeholder('84152618')
+
                     ->required(),
             ]);
     }

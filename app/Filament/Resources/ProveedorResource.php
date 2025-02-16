@@ -52,6 +52,10 @@ class ProveedorResource extends Resource
                     ->regex('/^\d{3}-\d{6}-\d{4}[A-Z]$/') // Letra obligatoria
                     ->mask('999-999999-9999a')
                     ->placeholder('XXX-XXXXXX-XXXXX')
+                    ->extraInputAttributes([
+                        'oninput' => "this.value = this.value.toUpperCase()",
+                        'onpaste' => "this.value = this.value.toUpperCase()"
+                    ])
                     ->unique(ignoreRecord: true),
                 Forms\Components\TextInput::make('direccion')
                     ->maxLength(255),

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Resources\InventarioResource\Widgets\InventarioStats;
 use App\Models\Entrega;
 use App\Models\Liquidacion;
 use App\Models\Prestamo;
