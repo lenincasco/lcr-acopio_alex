@@ -49,24 +49,23 @@ class Entrega extends Model
     //NEW update Inventario
     protected static function booted()
     {
+        // Al crear una entrega, se incrementa el inventario.
         static::created(function ($entrega) {
-            // Buscar el registro de inventario acumulado para esta combinación
             $inventario = Inventario::where('humedad', $entrega->humedad)
                 ->where('tipo_cafe', $entrega->tipo_cafe)
-                ->where('humedad', $entrega->humedad)
                 ->first();
 
             if ($inventario) {
-                // Incrementar la cantidad y el peso neto acumulado
+                // Se incrementa el inventario con los valores de la entrega.
                 $inventario->increment('cantidad_sacos', $entrega->cantidad_sacos);
                 $inventario->increment('peso_neto', $entrega->peso_neto);
-                // Actualizar la fecha de última modificación
                 $inventario->fecha = $entrega->fecha_entrega;
+                // Los métodos increment/decrement ejecutan la query inmediatamente, 
+                // pero como modificamos 'fecha' hacemos un save() para persistirlo.
                 $inventario->save();
             } else {
-                // Crear un nuevo registro acumulado si no existe
+                // Si no existe, se crea un nuevo registro acumulado.
                 Inventario::create([
-                    // No incluimos 'entrega_id' porque es acumulado
                     'fecha' => $entrega->fecha_entrega,
                     'tipo' => 'ENTRADA',
                     'tipo_cafe' => $entrega->tipo_cafe,
@@ -77,29 +76,24 @@ class Entrega extends Model
             }
         });
 
-        // Similarmente, en el evento 'updated' se debería calcular la diferencia
-        // entre el nuevo valor y el anterior y actualizar el registro acumulado.
+        // Al actualizar una entrega, se debe "revertir" el efecto original y luego aplicar el nuevo.
         static::updated(function ($entrega) {
-            // Se requiere tener el valor original para calcular la diferencia
             $originalCantidad = $entrega->getOriginal('cantidad_sacos');
             $originalPesoNeto = $entrega->getOriginal('peso_neto');
 
-            // Buscar el registro acumulado correspondiente. Puede requerirse identificar
-            // el registro anterior en caso de que se haya modificado el tipo de café o humedad.
-            $inventario = Inventario::where('tipo', 'ENTRADA')
+            $inventario = Inventario::where('humedad', $entrega->humedad)
                 ->where('tipo_cafe', $entrega->tipo_cafe)
-                ->where('humedad', $entrega->humedad)
                 ->first();
 
             if ($inventario) {
-                // Calcular las diferencias
-                $diffCantidad = $entrega->cantidad_sacos - $originalCantidad;
-                $diffPesoNeto = $entrega->peso_neto - $originalPesoNeto;
+                // Revertir el efecto original: se decrementa el inventario con los valores antiguos.
+                $inventario->decrement('cantidad_sacos', $originalCantidad);
+                $inventario->decrement('peso_neto', $originalPesoNeto);
 
-                // Actualizar acumulados
-                $inventario->increment('cantidad', $diffCantidad);
-                $inventario->increment('peso_neto', $diffPesoNeto);
-                // Actualizar fecha si es necesario
+                // Aplicar el nuevo efecto: se incrementa el inventario con los nuevos valores.
+                $inventario->increment('cantidad_sacos', $entrega->cantidad_sacos);
+                $inventario->increment('peso_neto', $entrega->peso_neto);
+
                 $inventario->fecha = $entrega->fecha_entrega;
                 $inventario->save();
             } else {
@@ -107,15 +101,14 @@ class Entrega extends Model
             }
         });
 
-        // En 'deleted', se resta la cantidad y el peso neto del registro acumulado
+        // Al eliminar una entrega, se "revierte" su efecto, es decir, se decrementa el inventario.
         static::deleted(function ($entrega) {
-            $inventario = Inventario::where('tipo', 'ENTRADA')
+            $inventario = Inventario::where('humedad', $entrega->humedad)
                 ->where('tipo_cafe', $entrega->tipo_cafe)
-                ->where('humedad', $entrega->humedad)
                 ->first();
 
             if ($inventario) {
-                $inventario->decrement('cantidad', $entrega->cantidad_sacos);
+                $inventario->decrement('cantidad_sacos', $entrega->cantidad_sacos);
                 $inventario->decrement('peso_neto', $entrega->peso_neto);
                 $inventario->save();
             } else {
@@ -123,5 +116,6 @@ class Entrega extends Model
             }
         });
     }
+
 
 }
