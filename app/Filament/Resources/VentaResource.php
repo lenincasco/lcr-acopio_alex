@@ -9,8 +9,10 @@ use Filament\Forms\Components\Section;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
+use Filament\Support\RawJs;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Forms\Components\TextInput;
 
 class VentaResource extends Resource
 {
@@ -31,9 +33,12 @@ class VentaResource extends Resource
                 Forms\Components\DatePicker::make('fecha_venta')
                     ->label('Fecha venta')
                     ->required()
+                    ->extraInputAttributes([
+                        'style' => 'width: 150px;',
+                    ])
                     ->date('d-M-y'),
 
-                Section::make('Datos del café') // Encabezado de la sección
+                Section::make('Datos del café')
                     ->columns(3)
                     ->schema([
                         Forms\Components\Select::make('tipo_cafe')
@@ -43,32 +48,60 @@ class VentaResource extends Resource
                                 'PERGAMINO' => 'PERGAMINO',
                                 'MARA' => 'MARA',
                             ])
+                            ->reactive()
+                            ->afterStateUpdated(function ($set, $state) {
+                                // Consulta a la base de datos para obtener los valores únicos de humedad
+                                $humedades = \App\Models\Inventario::query()
+                                    ->where('tipo_cafe', $state)
+                                    ->groupBy('humedad')
+                                    ->pluck('humedad')
+                                    ->toArray();
+
+                                // Convertir a formato key => value (por ejemplo, '5' => '5%')
+                                $options = collect($humedades)
+                                    ->mapWithKeys(function ($value) {
+                                    return [$value => $value . '%'];
+                                })
+                                    ->toArray();
+
+                                // Guardar estas opciones en un estado temporal
+                                $set('humedadOptions', $options);
+                                // Limpiar la selección anterior de humedad (si hubiera)
+                                $set('humedad', null);
+                            })
                             ->required(),
-                        // Campo para la humedad (se puede convertir a numérico si es necesario)
-                        Forms\Components\TextInput::make('humedad')
+
+                        Forms\Components\Select::make('humedad')
                             ->label('Humedad %')
-                            ->required()
-                            ->numeric()
-                            ->step(0.01)
-                            ->minValue(0),
-                        Forms\Components\TextInput::make('imperfeccion')
-                            ->label('Imperfección %')
+                            ->options(function (callable $get) {
+                                // Usamos las opciones previamente definidas en 'tipo_cafe'
+                                return $get('humedadOptions') ?? [];
+                            })
+                            ->searchable()
+                            ->reactive()
                             ->required(),
                     ]),
+
                 Section::make('Peso')
                     ->columns(4)
-                    ->schema([
 
+                    ->hidden(function ($get): bool {
+                        return $get('tipo_cafe') == '' || $get('humedad') == '';
+                    })
+                    ->schema([
                         Forms\Components\TextInput::make('cantidad_sacos')
                             ->label('Cantidad de Sacos')
                             ->required()
                             ->reactive()
                             ->regex('/^\d+(\.\d{1,2})?$/')
                             ->numeric()
+                            ->mask(RawJs::make(<<<'JS'
+    $input.replace(/[^0-9.]/g, '').replace(/(\..*?)\..*/g, '$1');
+JS))
                             ->debounce(500)
                             ->afterStateUpdated(function ($set, $get, $state) {
                                 $tipoCafe = $get('tipo_cafe'); // Obtener el tipo de café seleccionado
-                                $stockDisponible = \App\Models\Inventario::where('tipo_cafe', $tipoCafe)->sum('cantidad_sacos'); // Consultar la cantidad disponible
+                                $stockDisponible = \App\Models\Inventario::where('tipo_cafe', $tipoCafe)->where('humedad', $get('humedad'))->sum('cantidad_sacos'); // Consultar la cantidad disponible
                     
                                 $tara = ceil($state / 2); // Cada saco es media libra
                                 $set('tara_saco', $tara / 100);
@@ -101,7 +134,20 @@ class VentaResource extends Resource
                             ->afterStateUpdated(function ($set, $state, $get) {
                                 $tara = $get('tara_saco');
                                 if ($state && $tara) {
-                                    $set('peso_neto', $state - $tara);
+                                    $pesoNeto = $state - $tara;
+                                    $set('peso_neto', $pesoNeto);
+
+                                    $tipoCafe = $get('tipo_cafe'); // Obtener el tipo de café seleccionado
+                                    $stockDisponible = \App\Models\Inventario::where('tipo_cafe', $tipoCafe)->where('humedad', $get('humedad'))->sum('peso_neto'); // Consultar la cantidad disponible
+                                    if ($pesoNeto > $stockDisponible) {
+                                        $set('peso_neto', round($stockDisponible, 3));
+                                        $set('peso_bruto', round($stockDisponible + $tara, 3));
+                                        Notification::make()
+                                            ->title('Stock insuficiente')
+                                            ->body("Solo hay $stockDisponible QQ disponibles para el tipo de café seleccionado.")
+                                            ->danger()
+                                            ->send();
+                                    }
                                 }
                             }),
                         Forms\Components\TextInput::make('tara_saco')
@@ -121,6 +167,9 @@ class VentaResource extends Resource
                     ]),
                 Section::make('Precios')
                     ->columns(5)
+                    ->hidden(function ($get): bool {
+                        return $get('cantidad_sacos') == '' || $get('peso_bruto') == '';
+                    })
                     ->schema([
                         Forms\Components\TextInput::make('precio_unitario')
                             ->label('Precio Unitario')
@@ -134,6 +183,12 @@ class VentaResource extends Resource
                         Forms\Components\TextInput::make('iva')
                             ->label('IVA %')
                             ->numeric()
+                            ->minValue(0)
+                            ->maxValue(99)
+                            ->default(0)
+                            ->mask(RawJs::make(<<<'JS'
+    $input.replace(/[^0-9.]/g, '').replace(/(\..*?)\..*/g, '$1');
+JS))
                             ->reactive()
                             ->debounce(500)
                             ->afterStateUpdated(function ($set, $get) {
@@ -191,6 +246,8 @@ class VentaResource extends Resource
                     ->formatStateUsing(fn(string $state): string => number_format($state, 2)),
                 Tables\Columns\TextColumn::make('tipo_cafe')
                     ->label('Tipo de Café'),
+                Tables\Columns\TextColumn::make('humedad')
+                    ->label('Humedad'),
                 Tables\Columns\TextColumn::make('monto_neto')
                     ->label('Monto Neto')
                     ->sortable()
@@ -215,9 +272,9 @@ class VentaResource extends Resource
 
     private static function recalcularTotales(callable $set, callable $get): void
     {
-        $precioUnitario = $get('precio_unitario') ?? 0;
-        $pesoNeto = $get('peso_neto') ?? 0;
-        $iva = $get('iva') ?? 0;
+        $precioUnitario = (float) ($get('precio_unitario') ?? 0);
+        $pesoNeto = (float) ($get('peso_neto') ?? 0);
+        $iva = (float) ($get('iva') ?? 0);
 
         $montoBruto = $precioUnitario * $pesoNeto;
         $montoNeto = $montoBruto + ($montoBruto * ($iva / 100)); // IVA calculado sobre monto_bruto
@@ -225,6 +282,7 @@ class VentaResource extends Resource
         $set('monto_bruto', number_format($montoBruto, 2, '.', ''));
         $set('monto_neto', number_format($montoNeto, 2, '.', ''));
     }
+
 
     public static function getRelations(): array
     {

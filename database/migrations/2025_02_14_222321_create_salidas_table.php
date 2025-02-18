@@ -22,7 +22,7 @@ return new class extends Migration {
             $table->decimal('peso_bruto', 8, 2);
             $table->decimal('peso_neto', 8, 2);
             $table->decimal('humedad', 5, 2);
-            $table->decimal('imperfeccion', 5, 2);
+            $table->decimal('calidad', 5, 2);
             $table->timestamps();
         });
     }

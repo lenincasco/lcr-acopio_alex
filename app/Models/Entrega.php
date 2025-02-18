@@ -19,12 +19,13 @@ class Entrega extends Model
         'peso_neto',
         'quintalaje_liquidable',
         'humedad',
-        'imperfeccion',
+        'calidad',
         'creado_por',
         'editado_por',
         'tipo_entrega', //Puede ser de tipo "COMPRA" o "ENTREGA"
         'liquidada',//NEW
         'tipo_cafe', //NEW
+        'precio_compra',//NEW
     ];
     public function proveedor()
     {

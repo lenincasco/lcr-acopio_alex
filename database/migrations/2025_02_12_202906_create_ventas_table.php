@@ -25,7 +25,7 @@ return new class extends Migration {
             $table->decimal('peso_bruto', 8, 2);
             $table->decimal('peso_neto', 8, 2);
             $table->decimal('humedad', 5, 2);
-            $table->decimal('imperfeccion', 5, 2)->nullable();
+            $table->string('calidad')->nullable()->default('Sin especificar');
 
             $table->decimal('tipo_cambio', 8, 3)->default(0);
             $table->decimal('precio_unitario', 10, 2)->default(0);

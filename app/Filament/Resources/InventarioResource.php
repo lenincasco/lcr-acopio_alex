@@ -22,8 +22,7 @@ class InventarioResource extends Resource
                     ->label('Tipo de Café')
                     ->sortable(),
                 TextColumn::make('humedad')
-                    ->label('Humedad %')
-                    ->formatStateUsing(fn(string $state): string => number_format($state, 2) . '%')
+                    ->label('Humedad')
                     ->sortable(),
                 TextColumn::make('cantidad_sacos')
                     ->label('Cantidad de Sacos')

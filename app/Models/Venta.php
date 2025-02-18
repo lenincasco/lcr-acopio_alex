@@ -18,7 +18,7 @@ class Venta extends Model
         'cantidad_sacos',
         'peso_neto',
         'humedad',
-        'imperfeccion',
+        'calidad',
         'tipo_cafe',
         'creado_por',
         'editado_por',

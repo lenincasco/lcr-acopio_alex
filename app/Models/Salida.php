@@ -21,7 +21,7 @@ class Salida extends Model
         'peso_saco',
         'peso_neto',
         'humedad',
-        'imperfeccion',
+        'calidad',
         'tipo_cafe',
         'creado_por',
         'editado_por',

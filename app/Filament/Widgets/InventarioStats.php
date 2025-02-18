@@ -3,26 +3,36 @@
 namespace App\Filament\Resources\InventarioResource\Widgets;
 
 use App\Models\Inventario;
+use Cache;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class InventarioStats extends BaseWidget
 {
-  protected function getHeading(): ?string
-  {
-    return 'Cantidad de sacos por tipo de café';
-  }
-  protected function getStats(): array
-  {
-    // Sumar la cantidad de café disponible por cada tipo
-    $uva = Inventario::where('tipo_cafe', 'UVA')->sum('cantidad_sacos');
-    $pergamino = Inventario::where('tipo_cafe', 'PERGAMINO')->sum('cantidad_sacos');
-    $mara = Inventario::where('tipo_cafe', 'MARA')->sum('cantidad_sacos');
+    protected ?string $heading = 'Stock de Café';
+    protected int|string|array $columnSpan = 'full'; // Ocupar ancho completo
 
-    return [
-      Stat::make('Café UVA', $uva),
-      Stat::make('Café PERGAMINO', $pergamino),
-      Stat::make('Café MARA', $mara),
-    ];
-  }
+    protected function getStats(): array
+    {
+        $stock = Cache::remember('coffee-stats', 3600, function () {
+            return Inventario::selectRaw('tipo_cafe, SUM(cantidad_sacos) as total')
+                ->groupBy('tipo_cafe')
+                ->get()
+                ->keyBy('tipo_cafe');
+        });
+
+        return [
+            Stat::make('UVA', $stock->get('UVA')->total ?? 0)
+                ->description('Sacos')
+                ->color('amber'),
+
+            Stat::make('PERGAMINO', $stock->get('PERGAMINO')->total ?? 0)
+                ->description('Sacos')
+                ->color('emerald'),
+
+            Stat::make('MARA', $stock->get('MARA')->total ?? 0)
+                ->description('Sacos')
+                ->color('rose'),
+        ];
+    }
 }
