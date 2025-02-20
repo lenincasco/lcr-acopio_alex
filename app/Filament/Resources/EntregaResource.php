@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\EntregaResource\Pages;
 use App\Models\Entrega;
+use Filament\Tables\Actions\Action;
 use Filament\Forms;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
@@ -11,6 +12,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class EntregaResource extends Resource
 {
@@ -181,6 +183,16 @@ class EntregaResource extends Resource
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
+            ])
+            ->actions([
+                Action::make('verRecibo')
+                    ->label('Ver Recibo')
+                    ->icon('heroicon-o-printer')
+                    ->modalHeading('Vista Previa del Recibo')
+                    ->modalSubmitActionLabel('Imprimir')
+                    ->modalWidth('2xl')
+                    ->modalSubmitAction(false)
+                    ->modalContent(fn($record) => view('recibos.modal', compact('record'))),
             ]);
     }
     private static function calcularOroBruto(callable $set, callable $get): void
@@ -202,6 +214,15 @@ class EntregaResource extends Resource
         }
         $set('peso_neto', $pesoBruto - $tara);
     }
+
+    public static function imprimirRecibo($record)
+    {
+        $entrega = Entrega::with('proveedor')->findOrFail($record);
+        $pdf = Pdf::loadView('recibos.entrega', compact('entrega'))->setPaper('a4', 'portrait');
+
+        return $pdf->stream('recibo.pdf');
+    }
+
 
     public static function getRelations(): array
     {
