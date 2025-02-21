@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
@@ -18,13 +17,15 @@ return new class extends Migration
             $table->decimal('interes', 5, 2);
             $table->decimal('plazo_meses', 4, 2);
             $table->decimal('monto', 10, 2);
-            $table->decimal('monto_interes', 10, 2)->nullable(); // Monto de interés
-            $table->decimal('monto_total', 10, 2)->nullable(); // Monto total
+            $table->decimal('monto_interes', 10, 2);
+            $table->decimal('monto_total', 10, 2);
+            $table->decimal('saldo', 10, 2);
+            $table->decimal('mora', 10, 2)->default(0.00);
             $table->decimal('volumen_estimado', 10, 2);
             $table->decimal('precio_referencia', 10, 2);
             $table->date('fecha_vencimiento');
             $table->date('fecha_ultimo_pago')->nullable();
-            $table->decimal('tipo_cambio',6,4);
+            $table->decimal('tipo_cambio', 6, 4);
             $table->timestamps();
         });
     }

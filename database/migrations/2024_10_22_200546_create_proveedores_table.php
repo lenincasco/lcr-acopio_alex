@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
@@ -13,13 +12,16 @@ return new class extends Migration
     {
         Schema::create('proveedores', function (Blueprint $table) {
             $table->id(); // ID autoincremental
-            $table->string('nombrecompleto'); // Nombre del proveedor
-            $table->string('cedula'); // Información de contacto
-            $table->string('direccion')->nullable(); // Dirección
-            $table->string('ciudad'); // Ciuidad del proveedor
-            $table->string('municipio'); // Municipio
-            $table->string('celular'); // Celular
-            $table->timestamps(); // created_at y updated_at
+            $table->string('nombrecompleto');
+            $table->string('direccion')->nullable();
+            //valores nullables en caso que el proveedor sea informal
+            $table->string('cedula')->nullable();
+            $table->string('ciudad');
+            $table->string('municipio')->nullable();
+            $table->string('celular')->nullable();
+            $table->decimal('credito_disponible', 10, 2)->default(0.00);
+            $table->timestamps();
+
         });
     }
 

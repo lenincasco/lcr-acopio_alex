@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\PrestamoResource\Pages;
+use App\Models\Abono;
 use App\Models\Prestamo;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -69,6 +70,9 @@ class PrestamoResource extends Resource
                 Forms\Components\DatePicker::make('fecha_desembolso')
                     ->label('Fecha de Desembolso')
                     ->displayFormat('d-m-Y')
+                    ->extraInputAttributes([
+                        'style' => 'width: 150px;',
+                    ])
                     ->required()
                     ->reactive()
                     ->debounce(500)
@@ -92,6 +96,9 @@ class PrestamoResource extends Resource
                 Forms\Components\DatePicker::make('fecha_vencimiento')
                     ->label('Fecha de Vencimiento')
                     ->displayFormat('d-m-Y')
+                    ->extraInputAttributes([
+                        'style' => 'width: 150px;',
+                    ])
                     ->required()
                     ->reactive(),
 
@@ -154,8 +161,8 @@ class PrestamoResource extends Resource
                     ->label('Monto de Interés C$')
                     ->sortable()
                     ->formatStateUsing(fn($state) => number_format($state, 2, '.', ',')),
-                Tables\Columns\TextColumn::make('monto_total') // Monto total
-                    ->label('Monto Total C$')
+                Tables\Columns\TextColumn::make('saldo') // Monto total
+                    ->label('Saldo')
                     ->sortable()
                     ->formatStateUsing(fn($state) => number_format($state, 2, '.', ',')),
 
@@ -184,6 +191,39 @@ class PrestamoResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(), // Acción para editar
+                Tables\Actions\Action::make('agregarAbono')
+                    ->label('Agregar Abono')
+                    ->icon('heroicon-o-plus')
+                    ->modalHeading('Registrar Abono')
+                    ->modalButton('Guardar Abono')
+                    ->form([
+                        Forms\Components\TextInput::make('monto')
+                            ->label('Monto')
+                            ->numeric()
+                            ->required(),
+                        Forms\Components\DatePicker::make('fecha_pago')
+                            ->label('Fecha de Pago')
+                            ->required(),
+                        Forms\Components\Textarea::make('observaciones')
+                            ->label('Observaciones')
+                            ->nullable(),
+                    ])
+                    ->action(function (Prestamo $record, array $data): void {
+                        // Crear el abono relacionado al préstamo
+                        Abono::create([
+                            'prestamo_id' => $record->id,
+                            'monto' => $data['monto'],
+                            'fecha_pago' => $data['fecha_pago'],
+                            'observaciones' => $data['observaciones'] ?? null,
+                        ]);
+
+                        // Actualizar la fecha del último pago en el préstamo (si lo requieres)
+                        $record->update([
+                            'fecha_ultimo_pago' => $data['fecha_pago'],
+                        ]);
+
+                        // Opcional: Notificar al usuario o refrescar la vista
+                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

@@ -18,6 +18,8 @@ class Prestamo extends Model
         'monto',
         'monto_interes',
         'monto_total',
+        'saldo',
+        'mora',
         'volumen_estimado',
         'precio_referencia',
         'fecha_vencimiento',
@@ -29,5 +31,13 @@ class Prestamo extends Model
     public function proveedor()
     {
         return $this->belongsTo(Proveedor::class); // Un préstamo pertenece a un proveedor
+    }
+
+    protected static function booted()
+    {
+        // Cuando se crea una venta, se reduce el inventario.
+        static::creating(function ($prestamo) {
+            $prestamo->saldo = $prestamo->monto_total;
+        });
     }
 }
