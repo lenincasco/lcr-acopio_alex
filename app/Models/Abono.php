@@ -11,7 +11,8 @@ class Abono extends Model
     protected $fillable = [
         'prestamo_id',
         'fecha_pago',
-        'monto',
+        'abono_capital',
+        'intereses',
         'observaciones',
     ];
 
@@ -46,7 +47,7 @@ class Abono extends Model
             ->first();
 
         if ($prestamo) {
-            $prestamo->saldo -= $abono->monto;
+            $prestamo->saldo -= $abono->abono_capital;
             $prestamo->fecha_ultimo_pago = $abono->fecha_pago;
             $prestamo->save();
         } else {
@@ -62,7 +63,7 @@ class Abono extends Model
         if ($prestamo) {
             $fechaOriginal = $prestamo->get('fecha_ultimo_pago');
 
-            $prestamo->saldo += $abono->monto;
+            $prestamo->saldo += $abono->abono_capital;
             $prestamo->fecha_ultimo_pago = $fechaOriginal;
             $prestamo->save();
         } else {
@@ -76,24 +77,21 @@ class Abono extends Model
         $oldCantidad = $abono->getOriginal('monto');
 
         // Calcular la diferencia: (valor original - valor nuevo)
-        $deltaCantidad = $oldCantidad - $abono->monto;
+        $deltaCantidad = $oldCantidad - $abono->abono_capital;
 
         $prestamo = Prestamo::where('id', $abono->prestamo_id)
             ->first();
 
+        $prestamo->fecha_ultimo_pago = $abono->fecha_pago;
         if ($prestamo) {
-            $fechaOriginal = $prestamo->get('fecha_ultimo_pago');
             if ($deltaCantidad > 0) {
-                $prestamo->saldo += $abono->monto;
-                $prestamo->fecha_ultimo_pago = $fechaOriginal;
-                $prestamo->save();
+                $prestamo->saldo += $abono->abono_capital;
             } elseif ($deltaCantidad < 0) {
                 // Si es negativa, significa que la venta aumentó,
                 // se debe decrementar el inventario en la diferencia.
-                $prestamo->saldo -= $abono->monto;
-                $prestamo->fecha_ultimo_pago = $fechaOriginal;
-                $prestamo->save();
+                $prestamo->saldo -= $abono->abono_capital;
             }
+            $prestamo->save();
 
         } else {
             \Log::warning("No se encontró registro de prestamo para el abono ID: {$abono->id}");

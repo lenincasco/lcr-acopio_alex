@@ -10,6 +10,10 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Tables\Actions\Action;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Filament\Tables\Enums\ActionsPosition;
+use Filament\Tables\Actions\ActionGroup;
 
 use Carbon\Carbon;
 
@@ -144,14 +148,16 @@ class PrestamoResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('proveedor.nombrecompleto') // Nombre del proveedor
+                Tables\Columns\TextColumn::make('proveedor.nombrecompleto')
                     ->label('Proveedor')
                     ->sortable()
                     ->searchable(),
-                Tables\Columns\TextColumn::make('fecha_desembolso') // Fecha de desembolso
+                Tables\Columns\TextColumn::make('fecha_desembolso')
                     ->label('Fecha de Desembolso')
                     ->date('d-m-yy')
                     ->sortable(),
+                Tables\Columns\TextColumn::make('fecha_ultimo_pago')
+                    ->label('Fecha de ultimo pago'),
 
                 Tables\Columns\TextColumn::make('monto') // Monto del préstamo
                     ->label('Monto Desembolso C$')
@@ -190,46 +196,36 @@ class PrestamoResource extends Resource
                 // Aquí puedes agregar filtros si es necesario
             ])
             ->actions([
-                Tables\Actions\EditAction::make(), // Acción para editar
-                Tables\Actions\Action::make('agregarAbono')
-                    ->label('Agregar Abono')
-                    ->icon('heroicon-o-plus')
-                    ->modalHeading('Registrar Abono')
-                    ->modalButton('Guardar Abono')
-                    ->form([
-                        Forms\Components\TextInput::make('monto')
-                            ->label('Monto')
-                            ->numeric()
-                            ->required(),
-                        Forms\Components\DatePicker::make('fecha_pago')
-                            ->label('Fecha de Pago')
-                            ->required(),
-                        Forms\Components\Textarea::make('observaciones')
-                            ->label('Observaciones')
-                            ->nullable(),
-                    ])
-                    ->action(function (Prestamo $record, array $data): void {
-                        // Crear el abono relacionado al préstamo
-                        Abono::create([
-                            'prestamo_id' => $record->id,
-                            'monto' => $data['monto'],
-                            'fecha_pago' => $data['fecha_pago'],
-                            'observaciones' => $data['observaciones'] ?? null,
-                        ]);
-
-                        // Actualizar la fecha del último pago en el préstamo (si lo requieres)
-                        $record->update([
-                            'fecha_ultimo_pago' => $data['fecha_pago'],
-                        ]);
-
-                        // Opcional: Notificar al usuario o refrescar la vista
-                    }),
+                ActionGroup::make([ // Agrupa las acciones en un menú
+                    Action::make('verPagare')
+                        ->label('Ver Pagaré')
+                        ->icon('heroicon-o-eye')
+                        ->modalHeading('Vista Previa del Pagaré')
+                        ->modalSubmitActionLabel('Imprimir')
+                        ->modalWidth('7xl')
+                        ->modalSubmitAction(false)
+                        ->modalContent(fn($record) => view('single.modalpagare', compact('record')))
+                ])
+                    ->tooltip('Agregar ABONO o ver PAGARÉ')
+                    ->icon('heroicon-m-adjustments-horizontal')
+                    ->dropdown()
+                    ->color('primary')
             ])
+            ->recordUrl(null)
+            ->actionsPosition(ActionsPosition::BeforeColumns)
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(), // Acción para eliminar en bloque
                 ]),
             ]);
+    }
+
+    public static function verPagare($record)
+    {
+        $prestamo = Prestamo::with('proveedor')->findOrFail($record);
+        $pdf = Pdf::loadView('single.pagare', compact('prestamo'))->setPaper('a4', 'portrait');
+
+        return $pdf->stream('pagare-id-' . $prestamo->id . '.pdf');
     }
 
     public static function getRelations(): array

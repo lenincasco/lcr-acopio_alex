@@ -37,7 +37,8 @@ class Prestamo extends Model
     {
         // Cuando se crea una venta, se reduce el inventario.
         static::creating(function ($prestamo) {
-            $prestamo->saldo = $prestamo->monto_total;
+            $prestamo->saldo = $prestamo->monto;
+            $prestamo->fecha_ultimo_pago = $prestamo->fecha_desembolso;
         });
     }
 }

@@ -14,7 +14,8 @@ return new class extends Migration {
             $table->id();
             $table->unsignedBigInteger('prestamo_id');
             $table->date('fecha_pago');
-            $table->decimal('monto', 10, 2);
+            $table->decimal('abono_capital', 10, 2);//monto - capital
+            $table->decimal('intereses', 10, 2);//interes en moneda
             $table->text('observaciones')->nullable();
             $table->timestamps();
 

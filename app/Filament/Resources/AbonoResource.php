@@ -3,17 +3,16 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\AbonoResource\Pages;
-use App\Filament\Resources\AbonoResource\RelationManagers;
 use App\Models\Abono;
+use Carbon\Carbon;
 use Filament\Forms;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Split;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Schema;
 
 class AbonoResource extends Resource
@@ -30,12 +29,11 @@ class AbonoResource extends Resource
                     ->columns(3)
                     ->Schema([
                         Forms\Components\Select::make('prestamo_id')
-                            ->label('Préstamo')
+                            ->label('Deudor')
                             ->options(function () {
                                 return \App\Models\Prestamo::with('proveedor')
                                     ->get()
                                     ->mapWithKeys(function ($prestamo) {
-                                        // Se utiliza el nombre completo del proveedor para la opción
                                         return [$prestamo->id => $prestamo->proveedor->nombrecompleto];
                                     })
                                     ->toArray();
@@ -44,13 +42,20 @@ class AbonoResource extends Resource
                             ->required()
                             ->reactive()
                             ->afterStateUpdated(function (callable $set, $state, callable $get) {
-                                $prestamo = \App\Models\Prestamo::with('proveedor')->find($state);
-                                if ($prestamo) {
-                                    // Se asigna el saldo actual del préstamo al estado "saldo_anterior"
-                                    $set('saldo_anterior', $prestamo->saldo);
-                                } else {
-                                    $set('saldo_anterior', $state);
-                                }
+                                $prestamoId = $get('prestamo_id');
+                                $prestamo = \App\Models\Prestamo::with('proveedor')->find($prestamoId);
+                                $interes = $prestamo->interes;
+                                $set('interes', $interes . '%');//info only
+                            }),
+                        Forms\Components\DatePicker::make('fecha_pago')
+                            ->label('Fecha de Pago')
+                            ->extraInputAttributes([
+                                'style' => 'width: 150px;',
+                            ])
+                            ->required()
+                            ->reactive()
+                            ->afterStateUpdated(function (callable $set, callable $get) {
+                                self::calcularTotales($get, $set);
                             }),
                         Forms\Components\TextInput::make('monto')
                             ->label('Monto')
@@ -58,16 +63,27 @@ class AbonoResource extends Resource
                             ->required()
                             ->reactive()
                             ->debounce(500)
-                            ->afterStateUpdated(function (callable $set, $state, callable $get) {
-                                $set('nuevo_saldo', $get('saldo_anterior') - $state);
+                            ->afterStateUpdated(function (callable $set, callable $get) {
+                                self::calcularTotales($get, $set);
                             }),
-                        Forms\Components\DatePicker::make('fecha_pago')
-                            ->label('Fecha de Pago')
-                            ->extraInputAttributes([
-                                'style' => 'width: 150px;',
-                            ])
-                            ->required(),
                     ]),
+                Section::make('')
+                    ->columns(3)
+                    ->schema([
+                        Forms\Components\TextInput::make('intereses')
+                            ->label('Intereses')
+                            ->disabled()
+                            ->dehydrated(true),
+                        Forms\Components\TextInput::make('abono_capital')
+                            ->label('Abono al capital')
+                            ->disabled()
+                            ->dehydrated(true),
+                        Forms\Components\TextInput::make('saldo')
+                            ->label('Saldo')
+                            ->disabled()
+                            ->dehydrated(true),
+                    ]),
+
 
                 Split::make([
                     Section::make('')
@@ -79,23 +95,74 @@ class AbonoResource extends Resource
                         ]),
                     Section::make('')
                         ->schema([
+                            Forms\Components\Placeholder::make('dias_diff_placeholder')
+                                ->label('Dias desde el ult. Pago')
+                                ->content(fn(callable $get) => $get('dias_diff') !== null ? $get('dias_diff') : '---'),
                             Forms\Components\Placeholder::make('saldo_anterior_placeholder')
                                 ->label('Saldo anterior')
-                                ->content(fn(callable $get) => $get('saldo_anterior') !== null ? $get('saldo_anterior') : 'N/A'),
-                            Forms\Components\Placeholder::make('nuevo_saldo_placeholder')
-                                ->label('Nuevo saldo')
-                                ->content(fn(callable $get) => $get('nuevo_saldo') !== null ? $get('nuevo_saldo') : 'N/A'),
+                                ->content(fn(callable $get) => $get('saldo_anterior') !== null ? $get('saldo_anterior') : '---'),
+                            Forms\Components\Placeholder::make('interes_placeholder')
+                                ->label('Interés')
+                                ->content(fn(callable $get) => $get('interes') !== null ? $get('interes') : '---')
                         ])->grow(),
                 ])->from('md')
                     ->columnSpanFull(),
             ]);
     }
 
+    private static function calcularTotales($get, $set): void
+    {
+        $prestamoId = $get('prestamo_id');
+        $fechaPago = $get('fecha_pago');
+        $monto = $get('monto');
+
+        if (!$prestamoId) {
+            Notification::make()
+                ->title('Campo requerido')
+                ->body('Selecciona el Proveedor al cual se le ha asignado el préstamo.')
+                ->warning()
+                ->send();
+            $set('monto', null);
+            return;
+        }
+        if ($fechaPago == '') {
+            Notification::make()
+                ->title('Campo requerido')
+                ->body('Selecciona la fecha de pago')
+                ->warning()
+                ->send();
+            $set('monto', null);
+            return;
+        }
+        if (!$monto) {
+            return;
+        }
+        $prestamo = \App\Models\Prestamo::with('proveedor')->find($prestamoId);
+        $fechaUltimoPago = $prestamo->fecha_ultimo_pago;
+
+
+        if (!$fechaUltimoPago) {
+            $fechaUltimoPago = $prestamo->fecha_desembolso;
+        }
+        if ($prestamo) {
+            $set('saldo_anterior', $prestamo->saldo);
+            $diasDiff = Carbon::parse($fechaUltimoPago)->diffInDays(Carbon::parse($fechaPago));
+
+            $intereses = (($prestamo->monto * $prestamo->interes / 100) / 360) * $diasDiff;
+            $set('intereses', round($intereses, 2));
+            $set('dias_diff', round($diasDiff));
+            $abonoCapital = floatval($monto) - $intereses;
+            $set('abono_capital', round($abonoCapital, 2));
+            $set('saldo', round($prestamo->saldo - $abonoCapital, 2));
+            $set('nuevo_saldo', 'C$' . round($prestamo->saldo - $abonoCapital, 2));
+        }
+    }
+
     public static function table(Table $table): Table
     {
         return $table
             ->columns([
-                //
+                Tables\Columns\TextColumn::make('monto')
             ])
             ->filters([
                 //
