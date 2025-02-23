@@ -14,21 +14,20 @@ return new class extends Migration {
             $table->id();
             $table->date('fecha_liquidacion');
             $table->foreignId('usuario_liquida')->constrained('users')->onDelete('cascade');
-            $table->text('observacion')->nullable();
-            $table->decimal('monto_total', 10, 2);
             $table->decimal('tipo_cambio', 10, 4);
             $table->decimal('total_qq_liquidados', 10, 2);
             $table->decimal('precio_liquidacion', 10, 2);
             $table->enum('estado', ['activa', 'anulada'])->default('activa');
-            $table->decimal('monto_credito_aplicado', 10, 2)->default(0.00);
-            $table->decimal('monto_neto', 10, 2)->default(0.00);
-
-
-            $table->unsignedBigInteger('proveedor_id')->after('id');
-            $table->foreign('proveedor_id')
+            $table->decimal('monto_neto', 10, 2);
+            //prestamo data
+            $table->decimal('intereses', 10, 2);
+            $table->decimal('abono_capital', 10, 2);
+            $table->unsignedBigInteger('prestamo_id')->after('id');
+            $table->foreign('prestamo_id')
                 ->references('id')
-                ->on('proveedores')
+                ->on('prestamos')
                 ->onDelete('cascade');
+            $table->text('observaciones')->nullable();
             $table->timestamps();
         });
     }

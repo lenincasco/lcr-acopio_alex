@@ -36,4 +36,5 @@ class DetalleLiquidacion extends Model
             }
         });
     }
+
 }

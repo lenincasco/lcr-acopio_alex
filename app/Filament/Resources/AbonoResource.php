@@ -145,13 +145,14 @@ class AbonoResource extends Resource
             $fechaUltimoPago = $prestamo->fecha_desembolso;
         }
         if ($prestamo) {
-            $set('saldo_anterior', $prestamo->saldo);
             $diasDiff = Carbon::parse($fechaUltimoPago)->diffInDays(Carbon::parse($fechaPago));
 
             $intereses = (($prestamo->monto * $prestamo->interes / 100) / 360) * $diasDiff;
-            $set('intereses', round($intereses, 2));
-            $set('dias_diff', round($diasDiff));
             $abonoCapital = floatval($monto) - $intereses;
+
+            $set('saldo_anterior', $prestamo->saldo);
+            $set('intereses', round($intereses, precision: 2));
+            $set('dias_diff', round($diasDiff));
             $set('abono_capital', round($abonoCapital, 2));
             $set('saldo', round($prestamo->saldo - $abonoCapital, 2));
             $set('nuevo_saldo', 'C$' . round($prestamo->saldo - $abonoCapital, 2));

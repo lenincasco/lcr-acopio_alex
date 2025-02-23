@@ -82,7 +82,6 @@ class EntregaResource extends Resource
                             ->required()
                             ->options([
                                 'PRIMERA' => 'PRIMERA',
-                                'EXPORTABLE' => 'EXPORTABLE',
                                 'IMPERFECTO' => 'IMPERFECTO',
                             ]),
                     ]),
