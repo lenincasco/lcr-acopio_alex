@@ -14,8 +14,8 @@ return new class extends Migration {
             $table->id();
             $table->foreignId('proveedor_id')->constrained('proveedores')->onDelete('cascade');
             $table->date('fecha_desembolso');
-            $table->decimal('interes', 5, 2);
-            $table->decimal('plazo_meses', 4, 2);
+            $table->decimal('interes', 4, 2);
+            $table->integer('plazo_meses');
             $table->decimal('monto', 10, 2);
             $table->decimal('monto_interes', 10, 2);
             $table->decimal('monto_total', 10, 2);

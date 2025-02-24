@@ -12,8 +12,14 @@ return new class extends Migration {
     {
         Schema::create('liquidaciones', function (Blueprint $table) {
             $table->id();
-            $table->date('fecha_liquidacion');
-            $table->foreignId('usuario_liquida')->constrained('users')->onDelete('cascade');
+            $table->foreignId('user_id')
+                ->nullable()
+                ->constrained('users')
+                ->onDelete('set null');  // Mantiene la liquidación si se elimina el usuario
+            $table->foreignId('prestamo_id')
+                ->constrained('prestamos')
+                ->onDelete('restrict');  // Evita eliminar préstamos con liquidaciones activas
+
             $table->decimal('tipo_cambio', 10, 4);
             $table->decimal('total_qq_liquidados', 10, 2);
             $table->decimal('precio_liquidacion', 10, 2);
@@ -22,12 +28,8 @@ return new class extends Migration {
             //prestamo data
             $table->decimal('intereses', 10, 2);
             $table->decimal('abono_capital', 10, 2);
-            $table->unsignedBigInteger('prestamo_id')->after('id');
-            $table->foreign('prestamo_id')
-                ->references('id')
-                ->on('prestamos')
-                ->onDelete('cascade');
             $table->text('observaciones')->nullable();
+            $table->date('fecha_liquidacion');
             $table->timestamps();
         });
     }

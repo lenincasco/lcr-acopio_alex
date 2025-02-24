@@ -85,7 +85,6 @@ class Entrega extends Model
             $inventario = Inventario::where('humedad', $entrega->humedad)
                 ->where('tipo_cafe', $entrega->tipo_cafe)
                 ->first();
-
             if ($inventario) {
                 // Revertir el efecto original: se decrementa el inventario con los valores antiguos.
                 $inventario->decrement('cantidad_sacos', $originalCantidad);

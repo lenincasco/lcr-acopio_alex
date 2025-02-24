@@ -148,6 +148,11 @@ class EntregaResource extends Resource
                     ->label('Fecha de Entrega')
                     ->sortable()
                     ->date('d-m-yy'),
+                Tables\Columns\TextColumn::make('tipo_entrega')
+                    ->label('Tipo de entrega'),
+                Tables\Columns\TextColumn::make('liquidada')
+                    ->label('Liquidada?')
+                    ->alignRight(),
 
                 Tables\Columns\TextColumn::make('cantidad_sacos')
                     ->label('Sacos')

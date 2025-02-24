@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\LiquidacionResource\Pages;
 use App\Models\Entrega;
 use App\Models\Liquidacion;
+use App\Models\Prestamo;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -32,15 +33,16 @@ class LiquidacionResource extends Resource
 					->schema([
 
 						Forms\Components\Select::make('prestamo_id')
-							->label('Proveedor')
+							->label('Préstamo a Liquidar')
 							->columnSpan(4)
 							->options(function () {
-								return \App\Models\Prestamo::with('proveedor')
+								return Prestamo::with('proveedor')
+									->where('saldo', '>', 0)
 									->get()
 									->mapWithKeys(function ($prestamo) {
-										return [$prestamo->id => $prestamo->proveedor->nombrecompleto];
-									})
-									->toArray();
+										$label = "Préstamo #{$prestamo->id} - {$prestamo->proveedor->nombrecompleto}";
+										return [$prestamo->id => $label];
+									});
 							})
 							->searchable()
 							->placeholder('Selecciona un proveedor/deudor')
@@ -62,10 +64,6 @@ class LiquidacionResource extends Resource
 									];
 								})->toArray();
 								$set('detalle_liquidacion', $repeaterData);
-								// Obtener y establecer el crédito disponible del proveedor
-								$proveedor = \App\Models\Proveedor::find($state);
-								$creditoDisponible = $proveedor ? $proveedor->credito_disponible : 0;
-								$set('credito_disponible_proveedor', $creditoDisponible);
 							})
 							->required()
 							->reactive(),
@@ -73,7 +71,12 @@ class LiquidacionResource extends Resource
 						Forms\Components\DatePicker::make('fecha_liquidacion')
 							->label('Fecha de Liquidación')
 							->columnSpan(2)
-							->required(),
+							->required()
+							->reactive()
+							->debounce(500)
+							->afterStateUpdated(function (callable $set, callable $get) {
+								self::recalcularTotales($set, $get);
+							}),
 
 						Forms\Components\TextInput::make('precio_liquidacion')
 							->label('Precio de Liquidación por QQ (C$)')
@@ -106,7 +109,7 @@ class LiquidacionResource extends Resource
 							->columnSpan('full') // Ocupa toda la fila
 							->columnSpan(6)
 							->nullable(),
-						Hidden::make('usuario_liquida')
+						Hidden::make('user_id')
 							->default(auth()->id())
 							->dehydrated(true),
 					]), // Fin de la sección Datos Generales
@@ -116,8 +119,11 @@ class LiquidacionResource extends Resource
 						$detalleLiquidacion = $get('detalle_liquidacion') ?? [];
 						return !empty($detalleLiquidacion);
 					})
-					->columns(4)
+					->columns(5)
 					->schema([
+						Forms\Components\TextInput::make('dias_diff')
+							->label('Dias')
+							->disabled(),
 						Forms\Components\TextInput::make('total_qq_liquidados')
 							->label('Total QQ Liquidados')
 							->disabled()
@@ -214,12 +220,10 @@ class LiquidacionResource extends Resource
 		$montoNeto = max(0, collect($detalle)->sum(fn($row) => (float) ($row['monto_entrega'] ?? 0)));//el metodo max se asegura que no se genenen valores negativos
 		$total_qq = collect($detalle)->sum(fn($row) => (float) ($row['qq_liquidado'] ?? 0));
 
-		$fechaPago = $get('fecha_pago');
-		$prestamoId = $get('prestamo_id');
-		$datosAbono = PrestamoHelper::calcularAbono($prestamoId, $montoNeto, $fechaPago);
+		$datosAbono = PrestamoHelper::calcularAbono($get('prestamo_id'), $montoNeto, $get('fecha_liquidacion'));
 		$set('intereses', $datosAbono->intereses);
 		$set('abono_capital', $datosAbono->abonoCapital);
-		//$set('dias_diff', $datosAbono->diasDiff);
+		$set('dias_diff', $datosAbono->diasDiff);
 		$set('total_qq_liquidados', $total_qq);
 		$set('monto_neto', $montoNeto);
 	}
@@ -232,7 +236,7 @@ class LiquidacionResource extends Resource
 					->label('Fecha de Liquidación')
 					->dateTime()
 					->sortable(),
-				Tables\Columns\TextColumn::make('proveedor.nombrecompleto') // Muestra el nombre del proveedor
+				Tables\Columns\TextColumn::make('prestamo.prestamo_id.proveedor.nombrecompleto') // Muestra el nombre del proveedor
 					->label('Proveedor')
 					->sortable()
 					->searchable(),
@@ -242,8 +246,16 @@ class LiquidacionResource extends Resource
 				Tables\Columns\TextColumn::make('total_qq_liquidados')
 					->label('Total QQ Liquidados')
 					->sortable(),
-				Tables\Columns\TextColumn::make('monto_neto') // Muestra el Monto Neto en la tabla
-					->label('Monto Neto') // Etiqueta actualizada a Monto Neto
+				Tables\Columns\TextColumn::make('monto_neto')
+					->label('Monto Neto')
+					->sortable()
+					->formatStateUsing(fn($state) => 'C$ ' . number_format($state, 2)),
+				Tables\Columns\TextColumn::make('intereses')
+					->label('Intereses')
+					->sortable()
+					->formatStateUsing(fn($state) => 'C$ ' . number_format($state, 2)),
+				Tables\Columns\TextColumn::make('abono_capital')
+					->label('Abono al capital')
 					->sortable()
 					->formatStateUsing(fn($state) => 'C$ ' . number_format($state, 2)),
 				Tables\Columns\TextColumn::make('estado')

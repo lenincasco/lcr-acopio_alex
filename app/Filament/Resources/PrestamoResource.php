@@ -57,7 +57,7 @@ class PrestamoResource extends Resource
                     ->regex('/^\d+(\.\d{1,3})?$/')
                     ->numeric()
                     ->reactive()
-                    ->debounce(500)
+                    ->debounce(750)
                     ->afterStateUpdated(function ($set, $get) {
                         self::caculate($set, $get);
                     }),
