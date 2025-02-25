@@ -93,21 +93,24 @@ class EntregaResource extends Resource
                             ->label('Cantidad de Sacos')
                             ->required()
                             ->regex('/^\d+(\.\d{1,2})?$/')
-                            ->numeric(),
+                            ->numeric()
+                            ->reactive()
+                            ->debounce(500)
+                            ->afterStateUpdated(function ($set, $state) {
+                                if ($state) {
+                                    // Redondear hacia arriba la tara
+                                    $tara = ceil($state / 2); // Cada saco es media libra
+                                    $set('tara_saco', $tara / 100);
+                                }
+                            }),
                         Forms\Components\TextInput::make('peso_bruto')
                             ->label('Peso Bruto')
                             ->required()
                             ->regex('/^\d+(\.\d{1,2})?$/')
                             ->reactive()
                             ->debounce(500)
-                            ->afterStateUpdated(function ($set, $state, $get) {
-                                // Calcular la tara por saco
-                                if ($state) {
-                                    // Redondear hacia arriba la tara
-                                    $tara = ceil($state / 2); // Cada saco es media libra
-                                    $set('tara_saco', $tara / 100); // Asigna la tara calculada al campo 'tara'
-                                    self::calcularOroBruto($set, $get);
-                                }
+                            ->afterStateUpdated(function ($set, $get) {
+                                self::calcularOroBruto($set, $get);
                             }),
                         Forms\Components\TextInput::make('precio_compra')
                             ->label('Precio compra(Por quintal)')
@@ -127,7 +130,7 @@ class EntregaResource extends Resource
                             ->extraInputAttributes(['class' => 'pointer-events-none'])
                             ->readOnly(),
                         Forms\Components\TextInput::make('peso_neto')
-                            ->label('Peso Neto')
+                            ->label('Peso Neto (Quintales)')
                             ->extraInputAttributes(['class' => 'pointer-events-none'])
                             ->readOnly()
                             ->reactive(),
@@ -202,8 +205,8 @@ class EntregaResource extends Resource
     private static function calcularOroBruto(callable $set, callable $get): void
     {
         $humedad = $get('humedad');
-        $tara = $get('tara_saco');
         $pesoBruto = $get('peso_bruto');
+
         if ($humedad == 'OREADO') {
             $oroBruto = $pesoBruto / 2;
             $set('quintalaje_liquidable', $oroBruto);
@@ -216,7 +219,8 @@ class EntregaResource extends Resource
             $oroBruto = ($pesoBruto * 0.86) / 2;
             $set('quintalaje_liquidable', $oroBruto);
         }
-        $set('peso_neto', $pesoBruto - $tara);
+
+        $set('peso_neto', $pesoBruto - $get('tara_saco'));
     }
 
     public static function imprimirRecibo($record)

@@ -60,7 +60,7 @@ class VentaResource extends Resource
                                 // Convertir a formato key => value (por ejemplo, '5' => '5%')
                                 $options = collect($humedades)
                                     ->mapWithKeys(function ($value) {
-                                    return [$value => $value . '%'];
+                                    return [$value => $value];
                                 })
                                     ->toArray();
 
@@ -72,7 +72,7 @@ class VentaResource extends Resource
                             ->required(),
 
                         Forms\Components\Select::make('humedad')
-                            ->label('Humedad %')
+                            ->label('Humedad')
                             ->options(function (callable $get) {
                                 // Usamos las opciones previamente definidas en 'tipo_cafe'
                                 return $get('humedadOptions') ?? [];
@@ -84,10 +84,6 @@ class VentaResource extends Resource
 
                 Section::make('Peso')
                     ->columns(4)
-
-                    ->hidden(function ($get): bool {
-                        return $get('tipo_cafe') == '' || $get('humedad') == '';
-                    })
                     ->schema([
                         Forms\Components\TextInput::make('cantidad_sacos')
                             ->label('Cantidad de Sacos')
@@ -103,9 +99,9 @@ JS))
                                 $tipoCafe = $get('tipo_cafe'); // Obtener el tipo de café seleccionado
                                 $stockDisponible = \App\Models\Inventario::where('tipo_cafe', $tipoCafe)->where('humedad', $get('humedad'))->sum('cantidad_sacos'); // Consultar la cantidad disponible
                     
-                                $tara = ceil($state / 2); // Cada saco es media libra
-                                $set('tara_saco', $tara / 100);
-
+                                $tara = ceil($state / 2); // Cada saco es media libra, este es el peso total en libras
+                                $set('tara_saco', $tara / 100);//Este en quintal
+                    
                                 if ($get('tipo_cafe') == '') {
                                     $set('cantidad_sacos', 0);
                                     Notification::make()
@@ -151,28 +147,26 @@ JS))
                                 }
                             }),
                         Forms\Components\TextInput::make('tara_saco')
-                            ->label('Tara por saco')
+                            ->label('Tara total(En quintales)')
                             ->reactive()
-                            ->extraInputAttributes(['class' => 'pointer-events-none'])
-                            ->readOnly(),
+                            ->disabled()
+                            ->dehydrated(true),
 
                         Forms\Components\TextInput::make('peso_neto')
                             ->label('PESO NETO')
-                            ->readOnly()
-                            ->extraInputAttributes(['class' => 'pointer-events-none appearance-none border-none bg-transparent'])
                             ->reactive()
                             ->afterStateUpdated(function ($set, $get) {
                                 self::recalcularTotales($set, $get);
-                            }),
+                            })
+                            ->disabled()
+                            ->dehydrated(true),
                     ]),
                 Section::make('Precios')
                     ->columns(5)
-                    ->hidden(function ($get): bool {
-                        return $get('cantidad_sacos') == '' || $get('peso_bruto') == '';
-                    })
                     ->schema([
                         Forms\Components\TextInput::make('precio_unitario')
                             ->label('Precio Unitario')
+                            ->required()
                             ->numeric()
                             ->reactive()
                             ->debounce(500)
@@ -205,13 +199,13 @@ JS))
 
                         Forms\Components\TextInput::make('monto_bruto')
                             ->label('Monto Bruto')
-                            ->readOnly()
-                            ->extraInputAttributes(['class' => 'pointer-events-none']),
+                            ->disabled()
+                            ->dehydrated(true),
 
                         Forms\Components\TextInput::make('monto_neto')
                             ->label('MONTO NETO C$')
-                            ->readOnly()
-                            ->extraInputAttributes(['class' => 'pointer-events-none']),
+                            ->disabled()
+                            ->dehydrated(true),
                     ]),
 
                 Forms\Components\Textarea::make('observaciones')
@@ -259,9 +253,6 @@ JS))
             ])
             ->actions([
                 Tables\Actions\EditAction::make()
-                    ->hidden(function ($record): bool {
-                        return $record->liquidada == true;
-                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
