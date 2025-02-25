@@ -12,7 +12,7 @@ class InventarioResource extends Resource
 {
     protected static ?string $model = Inventario::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-square-3-stack-3d';
 
     public static function table(Table $table): Table
     {

@@ -18,8 +18,9 @@ use Schema;
 class AbonoResource extends Resource
 {
     protected static ?string $model = Abono::class;
+    protected static ?string $navigationGroup = 'Finanzas';
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-currency-dollar';
 
     public static function form(Form $form): Form
     {

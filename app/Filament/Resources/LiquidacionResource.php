@@ -20,8 +20,9 @@ use Filament\Actions;
 class LiquidacionResource extends Resource
 {
 	protected static ?string $model = Liquidacion::class;
+	protected static ?string $navigationGroup = 'Finanzas';
 
-	protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+	protected static ?string $navigationIcon = 'heroicon-o-book-open';
 
 	public static function form(Form $form): Form
 	{
@@ -232,17 +233,10 @@ class LiquidacionResource extends Resource
 	{
 		return $table
 			->columns([
-				Tables\Columns\TextColumn::make('fecha_liquidacion')
-					->label('Fecha de Liquidación')
-					->dateTime()
-					->sortable(),
-				Tables\Columns\TextColumn::make('prestamo.prestamo_id.proveedor.nombrecompleto') // Muestra el nombre del proveedor
+				Tables\Columns\TextColumn::make('prestamo.proveedor.nombrecompleto') // Muestra el nombre del proveedor
 					->label('Proveedor')
 					->sortable()
 					->searchable(),
-				Tables\Columns\TextColumn::make('usuario.name') // Muestra el nombre del usuario que liquida
-					->label('Usuario Liquida')
-					->sortable(),
 				Tables\Columns\TextColumn::make('total_qq_liquidados')
 					->label('Total QQ Liquidados')
 					->sortable(),
@@ -259,6 +253,13 @@ class LiquidacionResource extends Resource
 					->sortable()
 					->formatStateUsing(fn($state) => 'C$ ' . number_format($state, 2)),
 				Tables\Columns\TextColumn::make('estado')
+					->sortable(),
+				Tables\Columns\TextColumn::make('fecha_liquidacion')
+					->label('Fecha de Liquidación')
+					->dateTime()
+					->sortable(),
+				Tables\Columns\TextColumn::make('usuario.name') // Muestra el nombre del usuario que liquida
+					->label('Usuario Liquida')
 					->sortable(),
 			])
 			->filters([
