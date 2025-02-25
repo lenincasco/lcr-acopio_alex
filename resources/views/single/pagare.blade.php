@@ -100,7 +100,8 @@ function numeroATexto($numero, $moneda = 'córdobas')
     <!-- Título del documento -->
     <div class="text-center">
       <h3 class="h3">PAGARÉ A LA ORDEN
-        <span style="margin-left: 1rem; color: tomato;">N.º: <?php echo $prestamo->numero ?? '11955'; ?>
+        <span style="margin-left: 1rem; color: tomato;">N.º:
+          <?php echo isset($prestamo->id) ? str_pad($prestamo->id, 4, '0', STR_PAD_LEFT) : 'ID NO ENCONTRADO'; ?>
         </span>
       </h3>
     </div>
@@ -164,7 +165,7 @@ function numeroATexto($numero, $moneda = 'córdobas')
           la
           necesidad de intimidación o requerimiento alguno judicial o extrajudicial y desde esa fecha hasta la solución
           efectiva de la deuda, reconoceré a mi acreedor un interés moratorio del
-          <span class="underline"><?php echo $prestamo->interes_moratorio ?? 'SIN ESPECIFICAR'; ?></span> por ciento.
+          <span class="underline"><?php echo $prestamo->interes_moratorio ?? '5'; ?></span> por ciento.
         </li>
         <li>
           Me comprometo también a pagar a mi acreedor, además del interés moratorio, los gastos que incurra por cobranza
@@ -188,7 +189,7 @@ function numeroATexto($numero, $moneda = 'córdobas')
           <span class="underline"><?php echo $prestamo->interes ?? 'SIN ESPECIFICAR'; ?></span> por ciento
           mensual,
           equivalente a
-          <span class="underline"><?php echo $prestamo->intereses ?? 'SIN ESPECIFICAR'; ?></span> anual.
+          <span class="underline"><?php echo $prestamo->interes * 12 ?? 'SIN ESPECIFICAR'; ?>%</span> anual.
         </li>
         <li>
           <!-- Constitución de fiador -->

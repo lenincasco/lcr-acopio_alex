@@ -208,15 +208,20 @@ class PrestamoResource extends Resource
             ->actions([
                 ActionGroup::make([ // Agrupa las acciones en un menú
                     Action::make('verPagare')
-                        ->label('Ver Pagaré')
+                        ->label('Vista previa del Pagaré')
                         ->icon('heroicon-o-eye')
                         ->modalHeading('Vista Previa del Pagaré')
                         ->modalSubmitActionLabel('Imprimir')
                         ->modalWidth('7xl')
                         ->modalSubmitAction(false)
-                        ->modalContent(fn($record) => view('single.modalpagare', compact('record')))
+                        ->modalContent(fn($record) => view('single.modalpagare', compact('record'))),
+                    Action::make('verPagare')
+                        ->label('Ir a la Página del Pagaré')
+                        ->icon('heroicon-o-document')
+                        ->url(fn($record) => route('single.pagare', $record->id)) // Asegúrate de que la ruta existe
+                        ->openUrlInNewTab(), // Opcional, abre la URL en una nueva pestaña
                 ])
-                    ->tooltip('Agregar ABONO o ver PAGARÉ')
+                    ->tooltip('Ver PAGARÉ')
                     ->icon('heroicon-m-adjustments-horizontal')
                     ->dropdown()
                     ->color('primary')
