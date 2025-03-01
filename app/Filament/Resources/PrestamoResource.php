@@ -89,7 +89,9 @@ class PrestamoResource extends Resource
                                 'style' => 'width: 150px;',
                             ])
                             ->required()
-                            ->reactive(),
+                            ->reactive()
+                            ->disabled()
+                            ->dehydrated(true),
                         Forms\Components\TextInput::make('volumen_estimado')
                             ->label('Volumen Estimado (quintales)')
                             ->placeholder('Cantidad')

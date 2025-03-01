@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Log;
 class PrestamoHelper
 {
   //********************* UTILS ***************************/
-  public static function calcularAbono($prestamoId, $monto, $fechaPago)
+  public static function CalcularDiasInteres($prestamoId, $fechaPago)
   {
     $prestamo = Prestamo::with('proveedor')->find($prestamoId);
 
@@ -21,12 +21,10 @@ class PrestamoHelper
     $diasDiff = Carbon::parse($fechaUltimoPago)->diffInDays(Carbon::parse($fechaPago));
 
     $intereses = (($prestamo->monto * $prestamo->interes / 100) / 360) * $diasDiff;
-    $abonoCapital = floatval($monto) - $intereses;
 
     return (object) [
       'diasDiff' => round($diasDiff),
       'intereses' => round($intereses, 2),
-      'abonoCapital' => round($abonoCapital, 2),
     ];
   }
 

@@ -33,6 +33,11 @@ class Prestamo extends Model
         return $this->belongsTo(Proveedor::class); // Un préstamo pertenece a un proveedor
     }
 
+    public function abonos()
+    {
+        return $this->hasMany(Abono::class);
+    }
+
     protected static function booted()
     {
         // Cuando se crea una venta, se reduce el inventario.

@@ -25,16 +25,4 @@ class DetalleLiquidacion extends Model
         return $this->belongsTo(Entrega::class);
     }
 
-    protected static function booted()
-    {
-        static::created(function (DetalleLiquidacion $detalle) {
-            // Usamos la relación para obtener la Entrega asociada
-            $entrega = $detalle->entrega;
-            if ($entrega && !$entrega->liquidada) {
-                $entrega->liquidada = true;
-                $entrega->save();
-            }
-        });
-    }
-
 }
