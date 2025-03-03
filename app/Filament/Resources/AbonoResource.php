@@ -115,7 +115,7 @@ class AbonoResource extends Resource
     {
         $prestamoId = $get('prestamo_id');
         $fechaPago = $get('fecha_pago');
-        $monto = $get('monto');
+        $monto = (float) $get('monto');
 
         if (!$prestamoId) {
             Notification::make()

@@ -205,7 +205,7 @@ class EntregaResource extends Resource
     private static function calcularOroBruto(callable $set, callable $get): void
     {
         $humedad = $get('humedad');
-        $pesoBruto = $get('peso_bruto');
+        $pesoBruto = floatval($get('peso_bruto'));
 
         if ($humedad == 'OREADO') {
             $oroBruto = $pesoBruto / 2;
@@ -219,8 +219,8 @@ class EntregaResource extends Resource
             $oroBruto = ($pesoBruto * 0.86) / 2;
             $set('quintalaje_liquidable', $oroBruto);
         }
-
-        $set('peso_neto', $pesoBruto - $get('tara_saco'));
+        $taraSacos = floatVal($get('tara_saco'));
+        $set('peso_neto', $pesoBruto - $taraSacos);
     }
 
     public static function imprimirRecibo($record)

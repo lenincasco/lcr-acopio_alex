@@ -129,9 +129,9 @@ class PrestamoResource extends Resource
 
     private static function caculate($set, $get): void
     {
-        $monto = $get('monto') ?? 0;
-        $plazo = $get('plazo_meses') ?? 0;
-        $interes = $get('interes') ?? 0;
+        $monto = intval($get('monto')) ?? 0;
+        $plazo = intval($get('plazo_meses')) ?? 0;
+        $interes = floatval($get('interes')) ?? 0;
         if ($interes && $monto) {
             $monto == '' ? $monto = 0 : $monto;
             $plazo == '' ? $plazo = 0 : $plazo;
