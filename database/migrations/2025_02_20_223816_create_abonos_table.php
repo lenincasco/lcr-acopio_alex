@@ -13,6 +13,10 @@ return new class extends Migration {
         Schema::create('abonos', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('prestamo_id');
+            $table->foreignId('liquidacion_id')
+                ->nullable()
+                ->constrained('liquidaciones')
+                ->onDelete('cascade'); // Elimina abonos si se borra la liquidación
             $table->date('fecha_pago');
             $table->decimal('abono_capital', 10, 2);//monto - capital
             $table->decimal('intereses', 10, 2);//interes en moneda

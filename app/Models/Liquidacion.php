@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Log;
 
 class Liquidacion extends Model
 {
@@ -17,9 +18,6 @@ class Liquidacion extends Model
     'precio_liquidacion',
     'estado',
     'monto_neto',
-    'prestamo_id', //NEW
-    'intereses',
-    'abono_capital', //NEW
     'observaciones',
   ];
 
@@ -39,59 +37,23 @@ class Liquidacion extends Model
   {
     return $this->hasMany(DetalleLiquidacion::class);
   }
+  // Nueva relación con abonos
+  public function abonos()
+  {
+    return $this->hasMany(Abono::class);
+  }
   protected static function booted()
   {
     static::created(function ($liquidacion) {
       DB::transaction(function () use ($liquidacion) {
-        // 1. Procesar cada préstamo del repeater      
-        static::UpdatePrestamos($liquidacion, "create");
 
-        // 2. Procesar sobrante en efectivo
-        if ($liquidacion->monto_sobrante > 0) {
-          Caja::create([
-            'monto' => $liquidacion->monto_sobrante,
-            'tipo' => 'egreso',
-            'concepto' => 'Sobrante liquidación #' . $liquidacion->id,
-            'user_id' => $liquidacion->user_id
-          ]);
-        }
+        $detalles = $liquidacion->detalles()->get();
 
-        // 3. Actualizar entregas y liquidaciones details
-        foreach ($liquidacion->detalle_liquidacion as $detalleData) {
-          $entrega = Entrega::find($detalleData['entrega_id']);
+        foreach ($detalles as $detalle) {
+          $entrega = Entrega::find($detalle->entrega_id);
           if ($entrega) {
-            if ($entrega->saldo == 0) {
-              $entrega->liquidada = true; // si cancela todo el saldo
-              $entrega->save();
-            }
-            $entrega->detallesLiquidacion()->create([
-              'liquidacion_id' => $liquidacion->id,
-              'entrega_id' => $entrega->id,
-              'monto_entrega' => $entrega->monto_entrega,
-              'qq_liquidado' => $entrega->qq_liquidado,
-            ]);
-          }
-        }
-      });
-    });
-
-    static::updated(function ($liquidacion) {
-      DB::transaction(function () use ($liquidacion) {
-        static::UpdatePrestamos($liquidacion, "update");
-
-        foreach ($liquidacion->detalle_liquidacion as $detalleData) {
-          $entrega = Entrega::find($detalleData['entrega_id']);
-          if ($entrega) {
-            if ($entrega->saldo == 0) {
-              $entrega->liquidada = true;
-              $entrega->save();
-            }
-            $entrega->detallesLiquidacion()->update([
-              'liquidacion_id' => $liquidacion->id,
-              'entrega_id' => $entrega->id,
-              'monto_entrega' => $entrega->monto_entrega,
-              'qq_liquidado' => $entrega->qq_liquidado,
-            ]);
+            $entrega->liquidada = true;
+            $entrega->save();
           }
         }
       });
@@ -99,7 +61,20 @@ class Liquidacion extends Model
 
     static::deleting(function ($liquidacion) {
       DB::transaction(function () use ($liquidacion) {
-        static::UpdatePrestamos($liquidacion, "delete");
+        foreach ($liquidacion->abonos as $abono) {
+          if ($abono->liquidacion_id === $liquidacion->id) { // Asegurarse de que el abono pertenece a esta liquidación
+            $prestamo = $abono->prestamo;
+
+            if ($prestamo) {
+              Log::info("Saldo antes: " . $prestamo->saldo);
+              log::info("Abono al capital" . $abono->abono_capital);
+              Log::info("Saldo después: " . ($prestamo->saldo + $abono->abono_capital));
+              $prestamo->saldo += $abono->abono_capital; // Revertir saldo
+              $prestamo->save();
+            }
+          }
+        }
+
 
         foreach ($liquidacion->detalles as $detalle) {
           $entrega = Entrega::find($detalle->entrega_id);
@@ -113,40 +88,6 @@ class Liquidacion extends Model
         $liquidacion->detalles()->delete();
       });
     });
-  }
-
-  //*****************************************************************/
-  private static function UpdatePrestamos(Liquidacion $liquidacion, $action): void
-  {
-    foreach ($liquidacion->prestamos_disponibles as $prestamoData) {
-      $prestamo = Prestamo::find($prestamoData['prestamo_id']);
-
-      if (!$prestamo) {
-        return;
-      }
-
-      if ($action == "delete") {
-        // Solo eliminar abonos relacionados con esta liquidación
-        $prestamo->abono()->where('fecha_pago', $liquidacion->fecha_liquidacion)->delete();
-      } else {
-        // Calcular valores reales
-        $abonoCapital = $prestamoData['abono_capital'] ?? 0;
-        $intereses = $prestamoData['intereses'] ?? 0;
-
-        // Actualizar préstamo
-        $prestamo->saldo -= $abonoCapital;
-        $prestamo->fecha_ultimo_pago = $liquidacion->fecha_liquidacion;
-        $prestamo->save();
-
-        // Registrar detalles de la aplicación
-        $prestamo->abono()->create([
-          'prestamo_id' => $prestamo->id,
-          'abono_capital' => $abonoCapital,
-          'intereses' => $intereses,
-          'fecha_pago' => $liquidacion->fecha_liquidacion,
-        ]);
-      }
-    }
   }
 
 }

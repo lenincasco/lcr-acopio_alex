@@ -150,7 +150,8 @@ class LiquidacionResource extends Resource
 						Forms\Components\TextInput::make('monto_neto')
 							->label('Intereses + Abonos')
 							->columnSpan(2)
-							->disabled(),
+							->disabled()
+							->dehydrated(true),
 						Forms\Components\TextInput::make('qq_pagar')
 							->label('QQ a pagar')
 							->columnSpan(2)
@@ -167,6 +168,7 @@ class LiquidacionResource extends Resource
 				/********************************** */
 
 				Forms\Components\Repeater::make('prestamos_disponibles')
+					->relationship('abonos')
 					->label('PRÉSTAMOS PENDIENTES POR LIQUIDAR:')
 					->columns(12)
 					->columnSpan(12)
@@ -207,6 +209,13 @@ class LiquidacionResource extends Resource
 						Forms\Components\TextInput::make('abono_capital')
 							->label('Abono al capital')
 							->columnSpan(2)
+							->disabled()
+							->dehydrated(true),
+						Forms\Components\DatePicker::make('fecha_pago')
+							->columnSpan(2)
+							->default(function ($get) {
+								return $get('../../fecha_liquidacion'); // Ruta al campo padre
+							})
 							->disabled()
 							->dehydrated(true),
 					])
@@ -274,7 +283,6 @@ class LiquidacionResource extends Resource
 						self::recalcularTotales($set, $get);
 					}),
 
-
 				Section::make('No hay resultados')
 					->visible(function (callable $get) {
 						$detalleLiquidacion = $get('detalle_liquidacion') ?? [];
@@ -288,6 +296,7 @@ class LiquidacionResource extends Resource
 	{
 		$precioLiquidacion = floatVal($get('precio_liquidacion'));
 		$totalQQLiquida = floatVal($get('total_qq_liquidados'));
+		$fechaLiquidacion = $get('fecha_liquidacion');
 
 		if (!$precioLiquidacion) {
 			return;
@@ -318,9 +327,9 @@ class LiquidacionResource extends Resource
 		foreach ($prestamosDisponibles as $index => $prestamo) {
 			$saldoActual = floatVal($prestamo['saldo']) ?? 0;
 
-			if ($saldoActual > 0 && $sobranteMontoQQLiquida > 0) {
+			if ($saldoActual > 0 && $sobranteMontoQQLiquida > 0 && $totalQQLiquida > 0) {
 				// Obtener los intereses que deben ser descontados
-				$datosAbono = PrestamoHelper::CalcularDiasInteres($prestamo['prestamo_id'], $get('fecha_liquidacion'));
+				$datosAbono = PrestamoHelper::CalcularDiasInteres($prestamo['prestamo_id'], $fechaLiquidacion);
 				$intereses = floatval($datosAbono->intereses);
 				$totalInreses += $intereses;//actualiza totales
 				// Primero se descuenta el interés del sobrante
@@ -347,8 +356,11 @@ class LiquidacionResource extends Resource
 				$set("prestamos_disponibles.{$index}.abono_capital", $abonoCapital);
 				$set("prestamos_disponibles.{$index}.intereses", $intereses);
 				$set("prestamos_disponibles.{$index}.dias_diff", $datosAbono->diasDiff);
+				$set("prestamos_disponibles.{$index}.fecha_pago", $fechaLiquidacion);
 			} else {
 				$set("prestamos_disponibles.{$index}.nuevo_saldo", $saldoActual);
+				$set("prestamos_disponibles.{$index}.abono_capital", 0);
+				$set("prestamos_disponibles.{$index}.intereses", 0);
 			}
 
 		}
@@ -388,14 +400,6 @@ class LiquidacionResource extends Resource
 					->sortable(),
 				Tables\Columns\TextColumn::make('monto_neto')
 					->label('Monto Neto')
-					->sortable()
-					->formatStateUsing(fn($state) => 'C$ ' . number_format($state, 2)),
-				Tables\Columns\TextColumn::make('intereses')
-					->label('Intereses')
-					->sortable()
-					->formatStateUsing(fn($state) => 'C$ ' . number_format($state, 2)),
-				Tables\Columns\TextColumn::make('abono_capital')
-					->label('Abono al capital')
 					->sortable()
 					->formatStateUsing(fn($state) => 'C$ ' . number_format($state, 2)),
 				Tables\Columns\TextColumn::make('estado')

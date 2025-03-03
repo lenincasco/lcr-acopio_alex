@@ -27,6 +27,7 @@ class Entrega extends Model
         'tipo_cafe', //NEW
         'precio_compra',//NEW
     ];
+
     public function proveedor()
     {
         return $this->belongsTo(Proveedor::class);
