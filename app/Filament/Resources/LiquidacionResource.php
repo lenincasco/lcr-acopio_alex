@@ -384,13 +384,13 @@ class LiquidacionResource extends Resource
 				$sobranteMontoQQLiquida -= $abonoCapital;
 
 				// Guardar los valores en el formulario
-				$set("prestamos_disponibles.{$index}.nuevo_saldo", $nuevoSaldo);
-				$set("prestamos_disponibles.{$index}.abono_capital", $abonoCapital);
-				$set("prestamos_disponibles.{$index}.intereses", $intereses);
+				$set("prestamos_disponibles.{$index}.nuevo_saldo", round($nuevoSaldo, 2));
+				$set("prestamos_disponibles.{$index}.abono_capital", round($abonoCapital, 2));
+				$set("prestamos_disponibles.{$index}.intereses", round($intereses, 2));
 				$set("prestamos_disponibles.{$index}.dias_diff", $datosAbono->diasDiff);
 				$set("prestamos_disponibles.{$index}.fecha_pago", $fechaLiquidacion);
 			} else {
-				$set("prestamos_disponibles.{$index}.nuevo_saldo", $saldoActual);
+				$set("prestamos_disponibles.{$index}.nuevo_saldo", round($saldoActual, 2));
 				$set("prestamos_disponibles.{$index}.abono_capital", 0);
 				$set("prestamos_disponibles.{$index}.intereses", 0);
 			}
@@ -410,6 +410,7 @@ class LiquidacionResource extends Resource
 			$set("detalle_liquidacion.{$index}.qq_liquidado", $qq_liquidados);
 		}
 
+
 		//TOTALES
 		$set('total_qq_liquidados', $TotalEntregasQQ);
 		$set('total_intereses', $totalInreses);
@@ -417,6 +418,10 @@ class LiquidacionResource extends Resource
 		$set('monto_neto', $TotalEntregasQQ * $precioLiquidacion);
 		$efectivoCliente = ($TotalEntregasQQ * $precioLiquidacion) - ($totalAbonoCapital + $totalInreses);
 		$set('efectivo_cliente', $efectivoCliente);
+
+		//Establecer la max cant. de QQ que el proveedor debe abonar
+		$maxAbonoQQ = ($totalAbonoCapital + $totalInreses) / $precioLiquidacion;
+		$set('qq_abonados', round($maxAbonoQQ, 3));
 	}
 
 	public static function table(Table $table): Table
