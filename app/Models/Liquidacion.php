@@ -49,19 +49,6 @@ class Liquidacion extends Model
 
     static::deleting(function ($liquidacion) {
       DB::transaction(function () use ($liquidacion) {
-        foreach ($liquidacion->abonos as $abono) {
-          if ($abono->liquidacion_id === $liquidacion->id) { // Asegurarse de que el abono pertenece a esta liquidación
-            $prestamo = $abono->prestamo;
-
-            if ($prestamo) {
-              Log::info("Saldo antes: " . $prestamo->saldo);
-              log::info("Abono al capital" . $abono->abono_capital);
-              Log::info("Saldo después: " . ($prestamo->saldo + $abono->abono_capital));
-              $prestamo->saldo += $abono->abono_capital; // Revertir saldo
-              $prestamo->save();
-            }
-          }
-        }
 
 
         //el campo `liquidada` de cada entrada debe ser actualiza desde este proceso y no desde DetalleLiquidacion
@@ -72,6 +59,30 @@ class Liquidacion extends Model
           if ($entrega) {
             $entrega->liquidada = false;
             $entrega->save();
+          }
+        }
+
+        Log::info("Abonos: " . $liquidacion->abonos);
+
+        // Si no hay abonos, salimos de la transacción
+        if ($liquidacion->abonos->isEmpty()) {
+          return;
+        }
+
+        foreach ($liquidacion->abonos as $abono) {
+          // Si la fecha de pago es null, saltamos este abono
+          if (!$abono->fecha_pago) {
+            continue;
+          }
+          // Asegurarse de que el abono pertenece a esta liquidación
+          if ($abono->liquidacion_id === $liquidacion->id) {
+            $prestamo = $abono->prestamo;
+            if ($prestamo) {
+              Log::info("Saldo antes: " . $prestamo->saldo);
+              Log::info("Abono al capital: " . $abono->abono_capital);
+              Log::info("Saldo después: " . ($prestamo->saldo + $abono->abono_capital));
+              $prestamo->saldo += $abono->abono_capital; // Revertir saldo\n                        $prestamo->save();
+            }
           }
         }
       });

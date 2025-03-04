@@ -18,6 +18,7 @@ use Filament\Forms\Components\Hidden;
 use Filament\Notifications\Notification;
 
 use Filament\Actions;
+use function PHPUnit\Framework\isEmpty;
 
 class LiquidacionResource extends Resource
 {
@@ -72,6 +73,13 @@ class LiquidacionResource extends Resource
 										'qq_liquidado' => 0,
 									];
 								})->toArray();
+								if (count($repeaterData) === 0) {
+									Notification::make()
+										->title("Sin entregas")
+										->body('El proveedor no tiene entregas disponibles para liquidar')
+										->warning()
+										->send();
+								}
 								$set('detalle_liquidacion', $repeaterData);
 								$qq_pagar = collect($repeaterData)->sum(fn($row) => (float) ($row['qq_liquidable'] ?? 0));
 								$set('qq_pagar', $qq_pagar);
@@ -149,7 +157,7 @@ class LiquidacionResource extends Resource
 							->columnSpan(2)
 							->disabled(),
 						Forms\Components\TextInput::make('monto_neto')
-							->label('Intereses + Abonos')
+							->label('Monto Neto')
 							->columnSpan(2)
 							->disabled()
 							->dehydrated(true),
@@ -221,7 +229,8 @@ class LiquidacionResource extends Resource
 							->dehydrated(true),
 					])
 					->disableItemCreation()
-					->disableItemDeletion(),
+					->disableItemDeletion()
+					->hidden(fn($get) => empty($get('qq_abonados'))),
 
 				Forms\Components\Repeater::make('detalle_liquidacion')
 					->relationship('detalles')
@@ -306,6 +315,15 @@ class LiquidacionResource extends Resource
 		$detalle = $get('detalle_liquidacion') ?? [];
 
 		$TotalEntregasQQ = collect($detalle)->sum(fn($row) => (float) ($row['qq_liquidable'] ?? 0));
+		if ($TotalEntregasQQ === 0) {
+			Notification::make()
+				->title("Sin entregas")
+				->body('El proveedor no tiene entregas disponibles para liquidar')
+				->warning()
+				->send();
+			$set('precio_liquidacion', '');
+			return;
+		}
 		if ($TotalEntregasQQ < $qqAbonados) {
 			Notification::make()
 				->title("Quintalaje disponible: $TotalEntregasQQ QQ")
@@ -383,8 +401,8 @@ class LiquidacionResource extends Resource
 		$set('total_qq_liquidados', $TotalEntregasQQ);
 		$set('total_intereses', $totalInreses);
 		$set('total_abono_capital', $totalAbonoCapital);
-		$set('monto_neto', $montoQQLiquida);
-		$efectivoCliente = ($TotalEntregasQQ * $precioLiquidacion) - $montoQQLiquida;
+		$set('monto_neto', $TotalEntregasQQ * $precioLiquidacion);
+		$efectivoCliente = ($TotalEntregasQQ * $precioLiquidacion) - ($totalAbonoCapital + $totalInreses);
 		$set('efectivo_cliente', $efectivoCliente);
 	}
 
