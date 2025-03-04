@@ -12,7 +12,7 @@ return new class extends Migration {
     {
         Schema::create('liquidacion_detalle', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('liquidacion_id')->constrained('liquidaciones')->onDelete('restrict');//se deben eliminar desde el modelo liquidacion para antes cambiar el estado 'liquidada' en entregas
+            $table->foreignId('liquidacion_id')->constrained('liquidaciones')->onDelete('cascade');
             $table->foreignId('entrega_id')->constrained('entregas')->onDelete('cascade');
             $table->decimal('monto_entrega', 10, 2);
             $table->decimal('qq_liquidado', 10, 2);

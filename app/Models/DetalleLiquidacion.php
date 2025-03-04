@@ -25,4 +25,11 @@ class DetalleLiquidacion extends Model
         return $this->belongsTo(Entrega::class);
     }
 
+    protected static function booted()
+    {
+        static::created(function ($detalle) {
+            $detalle->entrega->update(['liquidada' => true]);
+        });
+    }
+
 }

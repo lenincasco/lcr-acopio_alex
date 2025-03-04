@@ -44,20 +44,8 @@ class Liquidacion extends Model
   }
   protected static function booted()
   {
-    static::created(function ($liquidacion) {
-      DB::transaction(function () use ($liquidacion) {
-
-        $detalles = $liquidacion->detalles()->get();
-
-        foreach ($detalles as $detalle) {
-          $entrega = Entrega::find($detalle->entrega_id);
-          if ($entrega) {
-            $entrega->liquidada = true;
-            $entrega->save();
-          }
-        }
-      });
-    });
+    // static::created no puede actualizar el campo de cada entrada 'liquidada' a true porque esta se crea después de este proceso
+    //es por ello que debe actualizarse desde el modelo DetalleLiquidacion
 
     static::deleting(function ($liquidacion) {
       DB::transaction(function () use ($liquidacion) {
@@ -76,6 +64,9 @@ class Liquidacion extends Model
         }
 
 
+        //el campo `liquidada` de cada entrada debe ser actualiza desde este proceso y no desde DetalleLiquidacion
+        //de lo contrario no cambia porque no se encuentra la entrada, debido a que el detalle ya ha sido eliminado antes
+
         foreach ($liquidacion->detalles as $detalle) {
           $entrega = Entrega::find($detalle->entrega_id);
           if ($entrega) {
@@ -83,9 +74,6 @@ class Liquidacion extends Model
             $entrega->save();
           }
         }
-
-        // Eliminar detalles manualmente después de actualizar entregas
-        $liquidacion->detalles()->delete();
       });
     });
   }

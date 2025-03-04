@@ -101,7 +101,7 @@ class LiquidacionResource extends Resource
 								self::recalcularTotales($set, $get);
 							}),
 
-						Forms\Components\TextInput::make('total_qq_liquidados')
+						Forms\Components\TextInput::make('qq_abonados')
 							->label('Cant. QQ que Abona')
 							->default(0)
 							->placeholder('Por ejemplo: 20')
@@ -135,10 +135,11 @@ class LiquidacionResource extends Resource
 					->columns(12)
 					->columnSpan(12)
 					->schema([
-						Forms\Components\TextInput::make('total_qq_entregas')
+						Forms\Components\TextInput::make('total_qq_liquidados')
 							->label('QQ Entregas')
 							->columnSpan(2)
-							->disabled(),
+							->disabled()
+							->dehydrated(true),
 						Forms\Components\TextInput::make('total_intereses')
 							->label('Intereses  (C$)')
 							->columnSpan(2)
@@ -295,7 +296,7 @@ class LiquidacionResource extends Resource
 	private static function recalcularTotales(callable $set, callable $get): void
 	{
 		$precioLiquidacion = floatVal($get('precio_liquidacion'));
-		$totalQQLiquida = floatVal($get('total_qq_liquidados'));
+		$qqAbonados = floatVal($get('qq_abonados'));
 		$fechaLiquidacion = $get('fecha_liquidacion');
 
 		if (!$precioLiquidacion) {
@@ -305,7 +306,7 @@ class LiquidacionResource extends Resource
 		$detalle = $get('detalle_liquidacion') ?? [];
 
 		$TotalEntregasQQ = collect($detalle)->sum(fn($row) => (float) ($row['qq_liquidable'] ?? 0));
-		if ($TotalEntregasQQ < $totalQQLiquida) {
+		if ($TotalEntregasQQ < $qqAbonados) {
 			Notification::make()
 				->title("Quintalaje disponible: $TotalEntregasQQ QQ")
 				->body('La cantidad de quintales que deseas liquidar excede al disponible.')
@@ -314,9 +315,9 @@ class LiquidacionResource extends Resource
 			$set('total_qq_liquidados', $TotalEntregasQQ);
 			return;
 		}
-		$set('qq_pagar', $TotalEntregasQQ - $totalQQLiquida);
+		$set('qq_pagar', $TotalEntregasQQ - $qqAbonados);
 
-		$montoQQLiquida = $totalQQLiquida * $precioLiquidacion;
+		$montoQQLiquida = $qqAbonados * $precioLiquidacion;
 
 		$prestamosDisponibles = $get('prestamos_disponibles') ?? [];
 		$sobranteMontoQQLiquida = $montoQQLiquida;
@@ -327,7 +328,7 @@ class LiquidacionResource extends Resource
 		foreach ($prestamosDisponibles as $index => $prestamo) {
 			$saldoActual = floatVal($prestamo['saldo']) ?? 0;
 
-			if ($saldoActual > 0 && $sobranteMontoQQLiquida > 0 && $totalQQLiquida > 0) {
+			if ($saldoActual > 0 && $sobranteMontoQQLiquida > 0 && $qqAbonados > 0) {
 				// Obtener los intereses que deben ser descontados
 				$datosAbono = PrestamoHelper::CalcularDiasInteres($prestamo['prestamo_id'], $fechaLiquidacion);
 				$intereses = floatval($datosAbono->intereses);
@@ -367,19 +368,19 @@ class LiquidacionResource extends Resource
 
 		// ******* Recalcular montos de entrega al cambiar precio_liquidacion *****	
 		foreach ($detalle as $index => $row) {
-			$qq_liquidados = floatVal($row['qq_liquidable']) - $totalQQLiquida;
+			$qq_liquidados = floatVal($row['qq_liquidable']) - $qqAbonados;
 			if ($qq_liquidados < 0) {
 				$qq_liquidados = floatVal($row['qq_liquidable']);
 			} else {
-				$qq_liquidados = $totalQQLiquida;
+				$qq_liquidados = $qqAbonados;
 			}
-			$totalQQLiquida -= $qq_liquidados;
+			$qqAbonados -= $qq_liquidados;
 			$set("detalle_liquidacion.{$index}.monto_entrega", $precioLiquidacion * $qq_liquidados);
 			$set("detalle_liquidacion.{$index}.qq_liquidado", $qq_liquidados);
 		}
 
 		//TOTALES
-		$set('total_qq_entregas', $TotalEntregasQQ);
+		$set('total_qq_liquidados', $TotalEntregasQQ);
 		$set('total_intereses', $totalInreses);
 		$set('total_abono_capital', $totalAbonoCapital);
 		$set('monto_neto', $montoQQLiquida);
