@@ -18,6 +18,7 @@ use Filament\Forms\Components\Hidden;
 use Filament\Notifications\Notification;
 
 use Filament\Actions;
+use Log;
 use function PHPUnit\Framework\isEmpty;
 
 class LiquidacionResource extends Resource
@@ -119,6 +120,18 @@ class LiquidacionResource extends Resource
 							->debounce(750)
 							->afterStateUpdated(function ($set, $get) {
 								self::recalcularTotales($set, $get);
+							})
+							->hidden(function (callable $get) {
+								// Obtener el ID del proveedor seleccionado
+								$proveedorId = $get('proveedor_id');
+
+								// Verificar si existe al menos un préstamo con saldo > 0
+								$tienePrestamosPorLiquidar = $proveedorId && Prestamo::where('proveedor_id', $proveedorId)
+									->where('saldo', '>', 0)
+									->exists();
+								if ($tienePrestamosPorLiquidar) {
+									return false;//hidden = false
+								}
 							}),
 
 						Forms\Components\TextInput::make('tipo_cambio')
@@ -428,7 +441,7 @@ class LiquidacionResource extends Resource
 					->label('Fecha de Liquidación')
 					->dateTime()
 					->sortable(),
-				Tables\Columns\TextColumn::make('usuario.name') // Muestra el nombre del usuario que liquida
+				Tables\Columns\TextColumn::make('user.name') // Muestra el nombre del usuario que liquida
 					->label('Usuario Liquida')
 					->sortable(),
 			])

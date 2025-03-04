@@ -46,6 +46,21 @@ class Liquidacion extends Model
   {
     // static::created no puede actualizar el campo de cada entrada 'liquidada' a true porque esta se crea después de este proceso
     //es por ello que debe actualizarse desde el modelo DetalleLiquidacion
+    static::created(function ($liquidacion) {
+      DB::transaction(function () use ($liquidacion) {
+
+        // Procesar salida de efectivo de caja
+        if ($liquidacion->monto_neto > 0) {
+          Caja::create([
+            'monto' => $liquidacion->monto_neto,
+            'tipo' => 'salida',
+            'concepto' => 'liquidacion',
+            'referencia' => $liquidacion->id,
+            'user_id' => $liquidacion->user_id,
+          ]);
+        }
+      });
+    });
 
     static::deleting(function ($liquidacion) {
       DB::transaction(function () use ($liquidacion) {
@@ -62,7 +77,11 @@ class Liquidacion extends Model
           }
         }
 
-        Log::info("Abonos: " . $liquidacion->abonos);
+        //revertir entrada de caja
+        $caja = Caja::where('referencia', $liquidacion->id)->first();
+        if ($caja) {
+          $caja->delete();
+        }
 
         // Si no hay abonos, salimos de la transacción
         if ($liquidacion->abonos->isEmpty()) {
