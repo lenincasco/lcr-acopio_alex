@@ -244,9 +244,9 @@ JS))
                     ->label('Humedad'),
                 Tables\Columns\TextColumn::make('monto_neto')
                     ->label('Monto Neto')
+                    ->money('NIO', locale: 'es_NI')
                     ->sortable()
-                    ->alignRight()
-                    ->formatStateUsing(fn(string $state): string => number_format($state, 2)),
+                    ->alignRight(),
             ])
             ->filters([
                 //

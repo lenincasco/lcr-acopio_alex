@@ -167,17 +167,17 @@ class PrestamoResource extends Resource
                     ->searchable(),
 
                 Tables\Columns\TextColumn::make('monto') // Monto del préstamo
-                    ->label('Monto Desembolso C$')
-                    ->sortable()
-                    ->formatStateUsing(fn($state) => number_format($state, 2, '.', ',')),
+                    ->label('Monto Desembolso')
+                    ->money('NIO', locale: 'es_NI')
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('monto_interes') // Monto de interés
-                    ->label('Monto de Interés C$')
-                    ->sortable()
-                    ->formatStateUsing(fn($state) => number_format($state, 2, '.', ',')),
+                    ->label('Monto de Interés')
+                    ->money('NIO', locale: 'es_NI')
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('saldo') // Monto total
                     ->label('Saldo')
-                    ->sortable()
-                    ->formatStateUsing(fn($state) => number_format($state, 2, '.', ',')),
+                    ->money('NIO', locale: 'es_NI')
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('interes') // Interés
                     ->label('Interés (%)')
                     ->sortable(),
@@ -228,7 +228,7 @@ class PrestamoResource extends Resource
                     ->dropdown()
                     ->color('primary')
             ])
-            ->recordUrl(null)
+            //->recordUrl(null) //disable edit on click
             ->actionsPosition(ActionsPosition::BeforeColumns)
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

@@ -164,7 +164,18 @@ class AbonoResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('monto')
+                Tables\Columns\TextColumn::make('prestamo.proveedor.nombrecompleto'),
+                Tables\Columns\TextColumn::make('abono_capital')
+                    ->label('Abono al capital')
+                    ->money('NIO', locale: 'es_NI'),
+                Tables\Columns\TextColumn::make('intereses')
+                    ->label('Intereses')
+                    ->money('NIO', locale: 'es_NI'),
+                Tables\Columns\TextColumn::make('fecha_pago')
+                    ->label('Fecha de pago'),
+                Tables\Columns\TextColumn::make('prestamo.saldo')
+                    ->label('Saldo del préstamo')
+                    ->money('NIO', locale: 'es_NI'),
             ])
             ->filters([
                 //

@@ -391,7 +391,7 @@ class LiquidacionResource extends Resource
 	{
 		return $table
 			->columns([
-				Tables\Columns\TextColumn::make('prestamo.proveedor.nombrecompleto') // Muestra el nombre del proveedor
+				Tables\Columns\TextColumn::make('detalles.entrega.proveedor.nombrecompleto')
 					->label('Proveedor')
 					->sortable()
 					->searchable(),
@@ -400,6 +400,7 @@ class LiquidacionResource extends Resource
 					->sortable(),
 				Tables\Columns\TextColumn::make('monto_neto')
 					->label('Monto Neto')
+					->money('NIO', locale: 'es_NI')
 					->sortable()
 					->formatStateUsing(fn($state) => 'C$ ' . number_format($state, 2)),
 				Tables\Columns\TextColumn::make('estado')
