@@ -19,6 +19,7 @@ class AbonoResource extends Resource
 {
     protected static ?string $model = Abono::class;
     protected static ?string $navigationGroup = 'Finanzas';
+    protected static ?int $navigationSort = 4;
 
     protected static ?string $navigationIcon = 'heroicon-o-currency-dollar';
 

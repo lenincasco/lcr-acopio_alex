@@ -21,6 +21,7 @@ class PrestamoResource extends Resource
 {
     protected static ?string $model = Prestamo::class;
     protected static ?string $navigationGroup = 'Finanzas';
+    protected static ?int $navigationSort = 2;
 
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';
 
@@ -35,6 +36,7 @@ class PrestamoResource extends Resource
                             ->label('Proveedor')
                             ->relationship('proveedor', 'nombrecompleto') // Asegúrate de que la relación esté definida en el modelo
                             ->searchable()
+                            ->disabled(fn($livewire): bool => filled($livewire->record))
                             ->required(),
                         Forms\Components\TextInput::make('plazo_meses')
                             ->label('Plazo (meses)')

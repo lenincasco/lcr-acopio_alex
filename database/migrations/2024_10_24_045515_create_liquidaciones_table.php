@@ -16,7 +16,7 @@ return new class extends Migration {
                 ->nullable()
                 ->constrained('users')
                 ->onDelete('set null');  // Mantiene la liquidación si se elimina el usuario
-
+            $table->integer('proveedor_id');// necesario para la intefaz de edit
             $table->decimal('tipo_cambio', 10, 4);
             $table->decimal('total_qq_liquidados', 10, 2);
             $table->decimal('precio_liquidacion', 10, 2);

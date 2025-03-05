@@ -25,6 +25,7 @@ class LiquidacionResource extends Resource
 {
 	protected static ?string $model = Liquidacion::class;
 	protected static ?string $navigationGroup = 'Finanzas';
+	protected static ?int $navigationSort = 3;
 
 	protected static ?string $navigationIcon = 'heroicon-o-book-open';
 
@@ -45,6 +46,7 @@ class LiquidacionResource extends Resource
 							->required()
 							->searchable()
 							->reactive()
+							->disabled(fn($livewire): bool => filled($livewire->record)) // Deshabilitado solo en edición
 							->afterStateUpdated(function (callable $set, $state) {
 								// Cargar préstamos activos del proveedor
 								$prestamos = Prestamo::where('proveedor_id', $state)
@@ -446,7 +448,7 @@ class LiquidacionResource extends Resource
 					->label('Fecha de Liquidación')
 					->dateTime()
 					->sortable(),
-				Tables\Columns\TextColumn::make('user.name') // Muestra el nombre del usuario que liquida
+				Tables\Columns\TextColumn::make('usuario.name') // Muestra el nombre del usuario que liquida
 					->label('Usuario Liquida')
 					->sortable(),
 			])

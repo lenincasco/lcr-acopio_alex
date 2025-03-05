@@ -16,6 +16,7 @@ class CajaResource extends Resource
     protected static ?string $model = Caja::class;
     protected static ?string $navigationGroup = 'Finanzas';
     protected static ?string $navigationLabel = 'Caja';
+    protected static ?int $navigationSort = 1;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 

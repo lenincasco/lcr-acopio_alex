@@ -12,6 +12,7 @@ class Liquidacion extends Model
 
   protected $fillable = [
     'fecha_liquidacion',
+    'proveedor_id',
     'user_id',
     'tipo_cambio',
     'total_qq_liquidados',
