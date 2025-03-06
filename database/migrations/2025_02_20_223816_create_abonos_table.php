@@ -20,10 +20,12 @@ return new class extends Migration {
             $table->date('fecha_pago');
             $table->decimal('abono_capital', 10, 2);//monto - capital
             $table->decimal('intereses', 10, 2);//interes en moneda
+            $table->integer('dias_diff');
+            $table->integer('qq_abonados')->default(0);//campo para liquidaciones
             $table->text('observaciones')->nullable();
-            $table->timestamps();
-
             $table->foreign('prestamo_id')->references('id')->on('prestamos')->onDelete('cascade');
+            $table->boolean('activo')->default(true);
+            $table->timestamps();
         });
     }
 

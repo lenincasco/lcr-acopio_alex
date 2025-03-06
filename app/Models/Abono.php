@@ -17,6 +17,8 @@ class Abono extends Model
         'abono_capital',
         'intereses',
         'observaciones',
+        'qq_abonados',
+        'dias_diff',
     ];
 
     // Relación: un abono pertenece a un préstamo

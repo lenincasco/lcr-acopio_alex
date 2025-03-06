@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Log;
+use Illuminate\Support\Facades\app\Config;
 
 class Liquidacion extends Model
 {
@@ -16,6 +17,7 @@ class Liquidacion extends Model
     'user_id',
     'tipo_cambio',
     'total_qq_liquidados',
+    'total_qq_abonados',
     'precio_liquidacion',
     'estado',
     'monto_neto',
@@ -55,12 +57,25 @@ class Liquidacion extends Model
           Caja::create([
             'monto' => $liquidacion->monto_neto,
             'tipo' => 'salida',
-            'concepto' => 'liquidacion',
+            'concepto' => Config('caja.concepto.LIQUIDACION'),
             'referencia' => $liquidacion->id,
             'user_id' => $liquidacion->user_id,
           ]);
         }
       });
+    });
+
+    static::updated(function ($liquidacion) {
+      $caja = Caja::where('referencia', $liquidacion->id)->first();
+      if ($caja) {
+        if (!$liquidacion->activa) {
+          $caja->activa = false;
+          $caja->save();
+        } else {
+          $caja->activa = true;
+          $caja->save();
+        }
+      }
     });
 
     static::deleting(function ($liquidacion) {

@@ -13,7 +13,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Forms\Components\Section;
-use App\Helpers\PrestamoHelper;
+use App\Helpers\LiquidacionHelper;
 use Filament\Forms\Components\Hidden;
 use Filament\Notifications\Notification;
 
@@ -47,45 +47,12 @@ class LiquidacionResource extends Resource
 							->searchable()
 							->reactive()
 							->disabled(fn($livewire): bool => filled($livewire->record)) // Deshabilitado solo en edición
-							->afterStateUpdated(function (callable $set, $state) {
-								// Cargar préstamos activos del proveedor
-								$prestamos = Prestamo::where('proveedor_id', $state)
-									->where('saldo', '>', 0)
-									->orderBy('fecha_desembolso')
-									->get();
-
-								//$set('prestamos_disponibles', $prestamos->toArray());
-								$prestamoRepeater = $prestamos->map(function ($prestamo) {
-									return [
-										'prestamo_id' => $prestamo->id,
-										'saldo' => $prestamo->saldo,
-									];
-								})->toArray();
-								$set('prestamos_disponibles', $prestamoRepeater);
-
-								//FILL ENTREGAS REPEATER
-								$entregas = Entrega::where('proveedor_id', $state)
-									->where('liquidada', false)
-									->where('tipo_entrega', 'ENTREGA')
-									->get();
-								$repeaterData = $entregas->map(function ($entrega) {
-									return [
-										'entrega_id' => $entrega->id,
-										'cantidad_sacos' => $entrega->cantidad_sacos,
-										'qq_liquidable' => $entrega->quintalaje_liquidable,
-										'qq_liquidado' => 0,
-									];
-								})->toArray();
-								if (count($repeaterData) === 0) {
-									Notification::make()
-										->title("Sin entregas")
-										->body('El proveedor no tiene entregas disponibles para liquidar')
-										->warning()
-										->send();
-								}
-								$set('detalle_liquidacion', $repeaterData);
-								$qq_pagar = collect($repeaterData)->sum(fn($row) => (float) ($row['qq_liquidable'] ?? 0));
-								$set('qq_pagar', $qq_pagar);
+							// Verificar si es modo edición
+							->afterStateHydrated(function (callable $set, $livewire) { // Usar $livewire					
+								LiquidacionHelper::afterHydratedProveedorId($set, $livewire);
+							})
+							->afterStateUpdated(function (callable $set, string $state) {
+								LiquidacionHelper::afterUpdatedProveedorId($set, $state);
 							})
 							->required()
 							->reactive(),
@@ -97,7 +64,7 @@ class LiquidacionResource extends Resource
 							->reactive()
 							->debounce(500)
 							->afterStateUpdated(function (callable $set, callable $get) {
-								self::recalcularTotales($set, $get);
+								LiquidacionHelper::recalcularTotales($set, $get);
 							}),
 
 						Forms\Components\TextInput::make('precio_liquidacion')
@@ -109,10 +76,10 @@ class LiquidacionResource extends Resource
 							->reactive()
 							->debounce(750)
 							->afterStateUpdated(function (callable $set, callable $get) {
-								self::recalcularTotales($set, $get);
+								LiquidacionHelper::recalcularTotales($set, $get);
 							}),
 
-						Forms\Components\TextInput::make('qq_abonados')
+						Forms\Components\TextInput::make('total_qq_abonados')
 							->label('Cant. QQ que Abona')
 							->default(0)
 							->placeholder('Por ejemplo: 20')
@@ -120,8 +87,8 @@ class LiquidacionResource extends Resource
 							->reactive()
 							->numeric()
 							->debounce(750)
-							->afterStateUpdated(function ($set, $get) {
-								self::recalcularTotales($set, $get);
+							->afterStateUpdated(function (callable $set, callable $get) {
+								LiquidacionHelper::recalcularTotales($set, $get);
 							})
 							->hidden(function (callable $get) {
 								// Obtener el ID del proveedor seleccionado
@@ -142,6 +109,14 @@ class LiquidacionResource extends Resource
 							->placeholder('Por ejemplo: 36.45')
 							->columnSpan(3)
 							->numeric(),
+						Forms\Components\Select::make('activa')
+							->columnSpan(2)
+							->default(true)
+							->options([
+								true => 'ACTIVA',
+								false => 'ANULADA',
+							])
+							->hidden(fn($livewire): bool => empty($livewire->record)),
 
 						Forms\Components\Textarea::make('observaciones')
 							->label('Observaciones')
@@ -189,7 +164,7 @@ class LiquidacionResource extends Resource
 
 					]), // Fin de la sección Totales
 
-				/********************************** */
+				/**************** ABONOS ****************** */
 
 				Forms\Components\Repeater::make('prestamos_disponibles')
 					->relationship('abonos')
@@ -235,6 +210,11 @@ class LiquidacionResource extends Resource
 							->columnSpan(2)
 							->disabled()
 							->dehydrated(true),
+						Forms\Components\TextInput::make('qq_abonados')
+							->label('QQ Abonados')
+							->columnSpan(2)
+							->disabled()
+							->dehydrated(true),
 						Forms\Components\DatePicker::make('fecha_pago')
 							->columnSpan(2)
 							->default(function ($get) {
@@ -244,8 +224,7 @@ class LiquidacionResource extends Resource
 							->dehydrated(true),
 					])
 					->disableItemCreation()
-					->disableItemDeletion()
-					->hidden(fn($get) => empty($get('qq_abonados'))),
+					->disableItemDeletion(),
 
 				Forms\Components\Repeater::make('detalle_liquidacion')
 					->relationship('detalles')
@@ -285,7 +264,7 @@ class LiquidacionResource extends Resource
 							->disabled()
 							->dehydrated(true),
 						Forms\Components\TextInput::make('qq_liquidado')
-							->label('QQ Abona')
+							->label('QQ liquidados')
 							->columnSpan(2)
 							->disabled()
 							->dehydrated(true),
@@ -298,14 +277,14 @@ class LiquidacionResource extends Resource
 							->dehydrated(true)
 							->required()
 							->afterStateUpdated(function (callable $set, $state, callable $get) {
-								self::recalcularTotales($set, $get);
+								LiquidacionHelper::recalcularTotales($set, $get);
 							}),
 					])
 					->minItems(1)
 					->disableItemCreation()
 					->disableItemDeletion()
 					->afterStateUpdated(function (callable $get, callable $set, $state) {
-						self::recalcularTotales($set, $get);
+						LiquidacionHelper::recalcularTotales($set, $get);
 					}),
 
 				Section::make('No hay resultados')
@@ -314,116 +293,6 @@ class LiquidacionResource extends Resource
 						return empty($detalleLiquidacion);
 					}),
 			]);
-	}
-
-	// Función reutilizable para recalcular totales (monto bruto, neto, total qq)
-	private static function recalcularTotales(callable $set, callable $get): void
-	{
-		$precioLiquidacion = floatVal($get('precio_liquidacion'));
-		$qqAbonados = floatVal($get('qq_abonados'));
-		$fechaLiquidacion = $get('fecha_liquidacion');
-
-		if (!$precioLiquidacion) {
-			return;
-		}
-
-		$detalle = $get('detalle_liquidacion') ?? [];
-
-		$TotalEntregasQQ = collect($detalle)->sum(fn($row) => (float) ($row['qq_liquidable'] ?? 0));
-		if ($TotalEntregasQQ === 0) {
-			Notification::make()
-				->title("Sin entregas")
-				->body('El proveedor no tiene entregas disponibles para liquidar')
-				->warning()
-				->send();
-			$set('precio_liquidacion', '');
-			return;
-		}
-		if ($TotalEntregasQQ < $qqAbonados) {
-			Notification::make()
-				->title("Quintalaje disponible: $TotalEntregasQQ QQ")
-				->body('La cantidad de quintales que deseas liquidar excede al disponible.')
-				->warning()
-				->send();
-			$set('total_qq_liquidados', $TotalEntregasQQ);
-			return;
-		}
-		$set('qq_pagar', $TotalEntregasQQ - $qqAbonados);
-
-		$montoQQLiquida = $qqAbonados * $precioLiquidacion;
-
-		$prestamosDisponibles = $get('prestamos_disponibles') ?? [];
-		$sobranteMontoQQLiquida = $montoQQLiquida;
-		$totalInreses = 0;
-		$totalAbonoCapital = 0;
-
-		/********* Prestamos *********/
-		foreach ($prestamosDisponibles as $index => $prestamo) {
-			$saldoActual = floatVal($prestamo['saldo']) ?? 0;
-
-			if ($saldoActual > 0 && $sobranteMontoQQLiquida > 0 && $qqAbonados > 0) {
-				// Obtener los intereses que deben ser descontados
-				$datosAbono = PrestamoHelper::CalcularDiasInteres($prestamo['prestamo_id'], $fechaLiquidacion);
-				$intereses = floatval($datosAbono->intereses);
-				$totalInreses += $intereses;//actualiza totales
-				// Primero se descuenta el interés del sobrante
-				if ($sobranteMontoQQLiquida >= $intereses) {
-					$sobranteMontoQQLiquida -= $intereses;
-				} else {
-					// Si el sobrante no cubre los intereses, no hay abono a capital
-					$set("prestamos_disponibles.{$index}.intereses", $sobranteMontoQQLiquida);
-					$set("prestamos_disponibles.{$index}.abono_capital", 0);
-					$sobranteMontoQQLiquida = 0;
-					break;
-				}
-
-				// Lo que queda del sobrante se usa para el abono a capital
-				$montoAplicar = min($saldoActual, $sobranteMontoQQLiquida);
-				$nuevoSaldo = $saldoActual - $montoAplicar;
-				$abonoCapital = $montoAplicar;
-				$totalAbonoCapital += $abonoCapital;//actualiza totales
-
-				$sobranteMontoQQLiquida -= $abonoCapital;
-
-				// Guardar los valores en el formulario
-				$set("prestamos_disponibles.{$index}.nuevo_saldo", round($nuevoSaldo, 2));
-				$set("prestamos_disponibles.{$index}.abono_capital", round($abonoCapital, 2));
-				$set("prestamos_disponibles.{$index}.intereses", round($intereses, 2));
-				$set("prestamos_disponibles.{$index}.dias_diff", $datosAbono->diasDiff);
-				$set("prestamos_disponibles.{$index}.fecha_pago", $fechaLiquidacion);
-			} else {
-				$set("prestamos_disponibles.{$index}.nuevo_saldo", round($saldoActual, 2));
-				$set("prestamos_disponibles.{$index}.abono_capital", 0);
-				$set("prestamos_disponibles.{$index}.intereses", 0);
-			}
-
-		}
-
-		// ******* Recalcular montos de entrega al cambiar precio_liquidacion *****	
-		foreach ($detalle as $index => $row) {
-			$qq_liquidados = floatVal($row['qq_liquidable']) - $qqAbonados;
-			if ($qq_liquidados < 0) {
-				$qq_liquidados = floatVal($row['qq_liquidable']);
-			} else {
-				$qq_liquidados = $qqAbonados;
-			}
-			$qqAbonados -= $qq_liquidados;
-			$set("detalle_liquidacion.{$index}.monto_entrega", $precioLiquidacion * $qq_liquidados);
-			$set("detalle_liquidacion.{$index}.qq_liquidado", $qq_liquidados);
-		}
-
-
-		//TOTALES
-		$set('total_qq_liquidados', $TotalEntregasQQ);
-		$set('total_intereses', $totalInreses);
-		$set('total_abono_capital', $totalAbonoCapital);
-		$set('monto_neto', $TotalEntregasQQ * $precioLiquidacion);
-		$efectivoCliente = ($TotalEntregasQQ * $precioLiquidacion) - ($totalAbonoCapital + $totalInreses);
-		$set('efectivo_cliente', $efectivoCliente);
-
-		//Establecer la max cant. de QQ que el proveedor debe abonar
-		$maxAbonoQQ = ($totalAbonoCapital + $totalInreses) / $precioLiquidacion;
-		$set('qq_abonados', round($maxAbonoQQ, 3));
 	}
 
 	public static function table(Table $table): Table

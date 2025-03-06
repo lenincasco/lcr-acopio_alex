@@ -19,8 +19,9 @@ return new class extends Migration {
             $table->integer('proveedor_id');// necesario para la intefaz de edit
             $table->decimal('tipo_cambio', 10, 4);
             $table->decimal('total_qq_liquidados', 10, 2);
+            $table->decimal('total_qq_abonados', 10, 2);
             $table->decimal('precio_liquidacion', 10, 2);
-            $table->enum('estado', ['activa', 'anulada'])->default('activa');
+            $table->boolean('activa')->default(true);
             $table->decimal('monto_neto', 10, 2);
             $table->text('observaciones')->nullable();
             $table->date('fecha_liquidacion');
