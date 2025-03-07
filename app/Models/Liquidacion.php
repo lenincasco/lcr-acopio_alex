@@ -49,6 +49,8 @@ class Liquidacion extends Model
   {
     // static::created no puede actualizar el campo de cada entrada 'liquidada' a true porque esta se crea después de este proceso
     //es por ello que debe actualizarse desde el modelo DetalleLiquidacion
+
+    //actualizacion de caja solamente, por el momento
     static::created(function ($liquidacion) {
       DB::transaction(function () use ($liquidacion) {
 
@@ -65,6 +67,7 @@ class Liquidacion extends Model
       });
     });
 
+    //actualizacion de caja solamente, por el momento
     static::updated(function ($liquidacion) {
       $caja = Caja::where('referencia', $liquidacion->id)->first();
       if ($caja) {
@@ -80,6 +83,19 @@ class Liquidacion extends Model
 
     static::deleting(function ($liquidacion) {
       DB::transaction(function () use ($liquidacion) {
+
+        //El saldo del préstamo debe ser actualizado aquí,
+        //no se actualiza desde el modelo Abono porque ya se habrá eliminado la liquidacion antes y no se conocerá el abono_capital
+        foreach ($liquidacion->abonos as $abono) {
+          if ($abono->liquidacion_id === $liquidacion->id) { // Asegurarse de que el abono pertenece a esta liquidación
+            $prestamo = $abono->prestamo;
+
+            if ($prestamo) {
+              $prestamo->saldo += $abono->abono_capital; // Revertir saldo
+              $prestamo->save();
+            }
+          }
+        }
 
 
         //el campo `liquidada` de cada entrada debe ser actualiza desde este proceso y no desde DetalleLiquidacion
@@ -99,27 +115,6 @@ class Liquidacion extends Model
           $caja->delete();
         }
 
-        // Si no hay abonos, salimos de la transacción
-        if ($liquidacion->abonos->isEmpty()) {
-          return;
-        }
-
-        foreach ($liquidacion->abonos as $abono) {
-          // Si la fecha de pago es null, saltamos este abono
-          if (!$abono->fecha_pago) {
-            continue;
-          }
-          // Asegurarse de que el abono pertenece a esta liquidación
-          if ($abono->liquidacion_id === $liquidacion->id) {
-            $prestamo = $abono->prestamo;
-            if ($prestamo) {
-              Log::info("Saldo antes: " . $prestamo->saldo);
-              Log::info("Abono al capital: " . $abono->abono_capital);
-              Log::info("Saldo después: " . ($prestamo->saldo + $abono->abono_capital));
-              $prestamo->saldo += $abono->abono_capital; // Revertir saldo\n                        $prestamo->save();
-            }
-          }
-        }
       });
     });
   }
