@@ -32,18 +32,32 @@ class Liquidacion extends Model
 
   public function prestamo()
   {
-    return $this->belongsTo(Prestamo::class);
+    return $this->belongsTo(Prestamo::class, 'proveedor_id');
   }
 
   // Relación con los detalles de la liquidación
   public function detalles()
   {
-    return $this->hasMany(DetalleLiquidacion::class);
+    return $this->hasMany(DetalleLiquidacion::class)->with('entrega');
   }
   // Nueva relación con abonos
   public function abonos()
   {
     return $this->hasMany(Abono::class);
+  }
+  // Accesor para transformar la data de abonos
+  public function getPrestamosDisponiblesAttribute()
+  {
+    return $this->abonos->map(function ($abono) {
+      return [
+        'prestamo_id' => $abono->prestamo_id,
+        'saldo' => $abono->prestamo->saldo,
+        'dias_diff' => $abono->dias_diff,
+        'abono_capital' => $abono->abono_capital,
+        'intereses' => $abono->intereses,
+        'qq_abonados' => $abono->qq_abonados,
+      ];
+    })->toArray();
   }
   protected static function booted()
   {

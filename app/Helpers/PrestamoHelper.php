@@ -58,16 +58,11 @@ class PrestamoHelper
   public static function updateOnUpdate(Model $model): void
   {
     $oldCantidad = $model->getOriginal('monto');
-    $deltaCantidad = $oldCantidad - $model->abono_capital;
-    $prestamo = Prestamo::find($model->prestamo_id);
 
+    $prestamo = Prestamo::find($model->prestamo_id);
     if ($prestamo) {
-      $prestamo->fecha_ultimo_pago = $model->fecha_liquidacion ?? $model->fecha_pago;
-      if ($deltaCantidad > 0) {
-        $prestamo->saldo += $model->abono_capital;
-      } elseif ($deltaCantidad < 0) {
-        $prestamo->saldo -= $model->abono_capital;
-      }
+      $prestamo->saldo += $oldCantidad;
+      $prestamo->saldo -= $model->abono_capital;
       $prestamo->save();
     } else {
       Log::warning("No se encontró registro del préstamo para el ID: {$model->id}");

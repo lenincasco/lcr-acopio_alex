@@ -16,6 +16,8 @@ use Filament\Forms\Components\Section;
 use App\Helpers\LiquidacionHelper;
 use Filament\Forms\Components\Hidden;
 use Filament\Notifications\Notification;
+use Filament\Resources\Pages\CreateRecord;
+use Filament\Resources\Pages\EditRecord;
 
 use Filament\Actions;
 use Log;
@@ -46,11 +48,7 @@ class LiquidacionResource extends Resource
 							->required()
 							->searchable()
 							->reactive()
-							->disabled(fn($livewire): bool => filled($livewire->record)) // Deshabilitado solo en edición
-							// Verificar si es modo edición
-							->afterStateHydrated(function (callable $set, $livewire) { // Usar $livewire					
-								LiquidacionHelper::afterHydratedProveedorId($set, $livewire);
-							})
+							->disabled(fn($livewire): bool => filled($livewire->record)) // Deshabilitado solo en edición							
 							->afterStateUpdated(function (callable $set, string $state) {
 								LiquidacionHelper::afterUpdatedProveedorId($set, $state);
 							})
@@ -63,8 +61,8 @@ class LiquidacionResource extends Resource
 							->required()
 							->reactive()
 							->debounce(500)
-							->afterStateUpdated(function (callable $set, callable $get) {
-								LiquidacionHelper::recalcularTotales($set, $get);
+							->afterStateUpdated(function (callable $set, callable $get, $livewire) {
+								LiquidacionHelper::recalcularTotales($set, $get, $livewire);
 							}),
 
 						Forms\Components\TextInput::make('precio_liquidacion')
@@ -75,8 +73,8 @@ class LiquidacionResource extends Resource
 							->columnSpan(3)
 							->reactive()
 							->debounce(750)
-							->afterStateUpdated(function (callable $set, callable $get) {
-								LiquidacionHelper::recalcularTotales($set, $get);
+							->afterStateUpdated(function (callable $set, callable $get, $livewire) {
+								LiquidacionHelper::recalcularTotales($set, $get, $livewire);
 							}),
 
 						Forms\Components\TextInput::make('total_qq_abonados')
@@ -87,8 +85,8 @@ class LiquidacionResource extends Resource
 							->reactive()
 							->numeric()
 							->debounce(750)
-							->afterStateUpdated(function (callable $set, callable $get) {
-								LiquidacionHelper::recalcularTotales($set, $get);
+							->afterStateUpdated(function (callable $set, callable $get, $livewire) {
+								LiquidacionHelper::recalcularTotales($set, $get, $livewire);
 							})
 							->hidden(function (callable $get) {
 								// Obtener el ID del proveedor seleccionado
@@ -161,6 +159,10 @@ class LiquidacionResource extends Resource
 							->columnSpan(2)
 							->disabled()
 							->dehydrated(true),
+						Forms\Components\TextInput::make('total_saldos_prestamos')
+							->label('Total de saldos')
+							->columnSpan(2)
+							->disabled(),
 
 					]), // Fin de la sección Totales
 
@@ -190,11 +192,35 @@ class LiquidacionResource extends Resource
 							->label('Saldo Anterior')
 							->columnSpan(2)
 							->disabled()
-							->dehydrated(true),
+							->dehydrated(true)
+							->afterStateHydrated(function (callable $set, callable $get) {
+								$prestamoId = $get('prestamo_id');
+
+								if (!$prestamoId) {
+									$set('saldo', 0);
+									return;
+								}
+
+								$prestamo = Prestamo::find($prestamoId);
+
+								if (!$prestamo) {
+									$set('saldo', 0);
+									return;
+								}
+
+								$ultimoAbono = $prestamo->abonos()->latest()->first();
+								$abonoCapital = $ultimoAbono ? $ultimoAbono->abono_capital : 0;
+
+								$set('saldo', $prestamo->saldo + $abonoCapital);
+							}),
 						Forms\Components\TextInput::make('nuevo_saldo')
 							->label('Nuevo saldo')
 							->columnSpan(2)
 							->disabled()
+							->afterStateHydrated(function (callable $set, callable $get) {
+								$saldo = $get('saldo');
+								$set('nuevo_saldo', $saldo - $get('abono_capital'));
+							})
 							->dehydrated(true),
 						Forms\Components\TextInput::make('dias_diff')
 							->label('Dias')
@@ -276,15 +302,15 @@ class LiquidacionResource extends Resource
 							->disabled()
 							->dehydrated(true)
 							->required()
-							->afterStateUpdated(function (callable $set, $state, callable $get) {
-								LiquidacionHelper::recalcularTotales($set, $get);
+							->afterStateUpdated(function (callable $set, callable $get, $livewire) {
+								LiquidacionHelper::recalcularTotales($set, $get, $livewire);
 							}),
 					])
 					->minItems(1)
 					->disableItemCreation()
 					->disableItemDeletion()
-					->afterStateUpdated(function (callable $get, callable $set, $state) {
-						LiquidacionHelper::recalcularTotales($set, $get);
+					->afterStateUpdated(function (callable $get, callable $set, $livewire) {
+						LiquidacionHelper::recalcularTotales($set, $get, $livewire);
 					}),
 
 				Section::make('No hay resultados')

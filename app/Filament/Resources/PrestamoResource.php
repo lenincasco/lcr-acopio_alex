@@ -186,7 +186,8 @@ class PrestamoResource extends Resource
                 Tables\Columns\TextColumn::make('plazo_meses') // Plazo en meses
                     ->label('Plazo (meses)')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('fecha_ultimo_pago')
+                Tables\Columns\TextColumn::make('date')
+                    ->getStateUsing(fn($record) => $record->abonos()->latest('fecha_pago')->value('fecha_pago') ?? $record->fecha_desembolso)
                     ->label('Fecha de ultimo pago'),
                 Tables\Columns\TextColumn::make('fecha_desembolso')
                     ->label('Fecha de Desembolso')
