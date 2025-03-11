@@ -26,6 +26,10 @@ return new class extends Migration {
             $table->date('fecha_vencimiento');
             $table->date('fecha_ultimo_pago')->nullable();
             $table->decimal('tipo_cambio', 6, 4);
+            $table->enum('estado', ['ACTIVO', 'ANULADO'])->default('ACTIVO');
+            $table->date('fecha_anula')->nullable();
+            $table->string('usuario_anula')->nullable();
+            $table->string('razon_anula')->nullable();
             $table->timestamps();
         });
     }

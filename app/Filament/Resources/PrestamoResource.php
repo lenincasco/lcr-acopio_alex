@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\PrestamoResource\Pages;
 use App\Models\Prestamo;
 use Filament\Forms;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -20,16 +21,26 @@ use Carbon\Carbon;
 class PrestamoResource extends Resource
 {
     protected static ?string $model = Prestamo::class;
+    protected static ?string $navigationLabel = 'Pagarés';
     protected static ?string $navigationGroup = 'Finanzas';
     protected static ?int $navigationSort = 2;
 
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';
+    public static function getModelLabel(): string
+    {
+        return 'Pagaré'; // Nombre en singular
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return 'Pagarés'; // Nombre en plural
+    }
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Section::make('Datos Generales de Prestamo')
+                Section::make('Datos Generales del Pagaré')
                     ->columns(4)
                     ->schema([
                         Forms\Components\Select::make('proveedor_id')
@@ -45,6 +56,7 @@ class PrestamoResource extends Resource
                             ->regex('/^\d+(\.\d{1,3})?$/')
                             ->reactive()
                             ->required()
+                            ->disabled(fn($livewire): bool => filled($livewire->record)) // Deshabilitado solo en edición	
                             ->afterStateUpdated(function ($set, $get) {
                                 self::caculate($set, $get);
                                 self::calculateDueDate($set, $get);
@@ -68,6 +80,7 @@ class PrestamoResource extends Resource
                             ->numeric()
                             ->reactive()
                             ->debounce(750)
+                            ->disabled(fn($livewire): bool => filled($livewire->record)) // Deshabilitado solo en edición	
                             ->afterStateUpdated(function ($set, $get) {
                                 self::caculate($set, $get);
                             }),
@@ -81,6 +94,7 @@ class PrestamoResource extends Resource
                             ->required()
                             ->reactive()
                             ->debounce(500)
+                            ->disabled(fn($livewire): bool => filled($livewire->record)) // Deshabilitado solo en edición	
                             ->afterStateUpdated(function ($set, $get) {
                                 self::calculateDueDate($set, $get);
                             }),
@@ -102,7 +116,7 @@ class PrestamoResource extends Resource
                             ->required(),
 
                         Forms\Components\TextInput::make('precio_referencia')
-                            ->label('Precio de Referencia')
+                            ->label('Precio de Referencia por quintal')
                             ->regex('/^\d+(\.\d{1,4})?$/')
                             ->numeric()
                             ->placeholder('Precio por quintal')
@@ -124,6 +138,32 @@ class PrestamoResource extends Resource
                         Forms\Components\TextInput::make('monto_total')
                             ->label('Monto Total C$')
                             ->disabled()
+                            ->dehydrated(true),
+                    ]),
+                Section::make('Anular pagaré')
+                    ->columns(12)
+                    ->columnSpan('full')
+                    ->schema([
+                        Forms\Components\Select::make('estado')
+                            ->label('¿Anular pagaré?')
+                            ->columnSpan(2)
+                            ->default('ACTIVO') // Asegurar un valor inicial
+                            ->options([
+                                'ACTIVO' => 'NO',
+                                'ANULADO' => 'SI',
+                            ])
+                            ->reactive(),
+
+                        Forms\Components\Textarea::make('razon_anula')
+                            ->label('Razón de la anulación')
+                            ->columnSpan(6)
+                            ->required()
+                            ->hidden(fn($get) => $get('estado') !== 'ANULADO'),
+                        Hidden::make('user_id')
+                            ->default(auth()->id())
+                            ->dehydrated(true),
+                        Hidden::make('fecha_anula')
+                            ->default(now())
                             ->dehydrated(true),
                     ]),
             ]);

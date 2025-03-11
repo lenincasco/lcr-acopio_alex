@@ -24,7 +24,11 @@ return new class extends Migration {
             $table->integer('qq_abonados')->default(0);//campo para liquidaciones
             $table->text('observaciones')->nullable();
             $table->foreign('prestamo_id')->references('id')->on('prestamos')->onDelete('cascade');
-            $table->boolean('activo')->default(true);
+            $table->enum('estado', ['ACTIVO', 'ANULADO'])->default('ACTIVO');
+            $table->date('fecha_anula')->nullable();
+            $table->string('usuario_anula')->nullable();
+            $table->string('razon_anula')->nullable();
+
             $table->timestamps();
         });
     }

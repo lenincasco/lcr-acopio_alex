@@ -151,6 +151,7 @@ class LiquidacionHelper
         $set("prestamos_disponibles.{$index}.nuevo_saldo", round($nuevoSaldo, 2));
         $set("prestamos_disponibles.{$index}.abono_capital", round($abonoCapital, 2));
         $set("prestamos_disponibles.{$index}.intereses", round($intereses, 2));
+        Log::info('dias diff: ' . $datosAbono->diasDiff);
         $set("prestamos_disponibles.{$index}.dias_diff", $datosAbono->diasDiff);
         $set("prestamos_disponibles.{$index}.qq_abonados", $qqAbonados);
         $set("prestamos_disponibles.{$index}.fecha_pago", $fechaLiquidacion);

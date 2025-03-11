@@ -16,7 +16,10 @@ return new class extends Migration {
             $table->string('referencia')->nullable(); // Número de comprobante o factura (opcional)
             $table->foreignId('user_id')->constrained('users')->onDelete('restrict');
             $table->string('detalle')->nullable();
-            $table->boolean('activa')->default(true);
+            $table->enum('estado', ['ACTIVO', 'ANULADO'])->default('ACTIVO');
+            $table->date('fecha_anula')->nullable();
+            $table->string('usuario_anula')->nullable();
+            $table->string('razon_anula')->nullable();
             $table->timestamps();
         });
     }

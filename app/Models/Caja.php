@@ -13,7 +13,7 @@ class Caja extends Model
     'monto',
     'referencia',
     'user_id',
-    'activa',//true/false
+    'estado',
     'dias_diff',
     'qq_abonados',
   ];

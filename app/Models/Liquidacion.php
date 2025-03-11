@@ -85,11 +85,11 @@ class Liquidacion extends Model
     static::updated(function ($liquidacion) {
       $caja = Caja::where('referencia', $liquidacion->id)->first();
       if ($caja) {
-        if (!$liquidacion->activa) {
-          $caja->activa = false;
+        if ($liquidacion->estado == 'ANULADO') {
+          $caja->estado = 'ANULADO';
           $caja->save();
         } else {
-          $caja->activa = true;
+          $caja->estado = 'ACTIVO';
           $caja->save();
         }
       }

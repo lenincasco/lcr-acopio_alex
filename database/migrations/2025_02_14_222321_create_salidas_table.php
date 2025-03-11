@@ -23,6 +23,11 @@ return new class extends Migration {
             $table->decimal('peso_neto', 8, 2);
             $table->decimal('humedad', 5, 2);
             $table->decimal('calidad', 5, 2);
+            $table->enum('estado', ['ACTIVO', 'ANULADO'])->default('ACTIVO');
+            $table->date('fecha_anula')->nullable();
+            $table->string('usuario_anula')->nullable();
+            $table->string('razon_anula')->nullable();
+
             $table->timestamps();
         });
     }

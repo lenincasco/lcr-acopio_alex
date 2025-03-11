@@ -30,6 +30,11 @@ return new class extends Migration {
 
             $table->boolean('liquidada')->default(false);
             $table->decimal('precio_compra', 5, 2); //NEW
+            $table->enum('estado', ['ACTIVO', 'ANULADO'])->default('ACTIVO');
+            $table->date('fecha_anula')->nullable();
+            $table->string('usuario_anula')->nullable();
+            $table->string('razon_anula')->nullable();
+
             $table->timestamps();
 
         });

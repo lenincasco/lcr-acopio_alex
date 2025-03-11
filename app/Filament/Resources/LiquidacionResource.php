@@ -6,7 +6,6 @@ use App\Filament\Resources\LiquidacionResource\Pages;
 use App\Models\Entrega;
 use App\Models\Liquidacion;
 use App\Models\Prestamo;
-use App\Models\Proveedor;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -15,17 +14,13 @@ use Filament\Tables\Table;
 use Filament\Forms\Components\Section;
 use App\Helpers\LiquidacionHelper;
 use Filament\Forms\Components\Hidden;
-use Filament\Notifications\Notification;
-use Filament\Resources\Pages\CreateRecord;
-use Filament\Resources\Pages\EditRecord;
 
 use Filament\Actions;
-use Log;
-use function PHPUnit\Framework\isEmpty;
 
 class LiquidacionResource extends Resource
 {
 	protected static ?string $model = Liquidacion::class;
+	protected static ?string $navigationLabel = 'Liquidaciones';
 	protected static ?string $navigationGroup = 'Finanzas';
 	protected static ?int $navigationSort = 3;
 
@@ -61,6 +56,7 @@ class LiquidacionResource extends Resource
 							->required()
 							->reactive()
 							->debounce(500)
+							->disabled(fn($livewire): bool => filled($livewire->record)) // Deshabilitado solo en edición	
 							->afterStateUpdated(function (callable $set, callable $get, $livewire) {
 								LiquidacionHelper::recalcularTotales($set, $get, $livewire);
 							}),
@@ -73,6 +69,7 @@ class LiquidacionResource extends Resource
 							->columnSpan(3)
 							->reactive()
 							->debounce(750)
+							->disabled(fn($livewire): bool => filled($livewire->record)) // Deshabilitado solo en edición	
 							->afterStateUpdated(function (callable $set, callable $get, $livewire) {
 								LiquidacionHelper::recalcularTotales($set, $get, $livewire);
 							}),
@@ -85,6 +82,7 @@ class LiquidacionResource extends Resource
 							->reactive()
 							->numeric()
 							->debounce(750)
+							->disabled(fn($livewire): bool => filled($livewire->record)) // Deshabilitado solo en edición	
 							->afterStateUpdated(function (callable $set, callable $get, $livewire) {
 								LiquidacionHelper::recalcularTotales($set, $get, $livewire);
 							})
@@ -107,14 +105,6 @@ class LiquidacionResource extends Resource
 							->placeholder('Por ejemplo: 36.45')
 							->columnSpan(3)
 							->numeric(),
-						Forms\Components\Select::make('activa')
-							->columnSpan(2)
-							->default(true)
-							->options([
-								true => 'ACTIVA',
-								false => 'ANULADA',
-							])
-							->hidden(fn($livewire): bool => empty($livewire->record)),
 
 						Forms\Components\Textarea::make('observaciones')
 							->label('Observaciones')
@@ -125,6 +115,33 @@ class LiquidacionResource extends Resource
 							->default(auth()->id())
 							->dehydrated(true),
 					]), // Fin de la sección Datos Generales
+
+				Section::make('Anular liquidación')
+					->columns(12)
+					->columnSpan('full')
+					->schema([
+						Forms\Components\Select::make('estado')
+							->label('¿Anular liquidación?')
+							->columnSpan(2)
+							->default('ACTIVO') // Asegurar un valor inicial
+							->options([
+								'ACTIVO' => 'NO',
+								'ANULADO' => 'SI',
+							])
+							->reactive(),
+
+						Forms\Components\Textarea::make('razon_anula')
+							->label('Razón de la anulación')
+							->columnSpan(6)
+							->required()
+							->hidden(fn($get) => $get('estado') !== 'ANULADO'),
+						Hidden::make('user_id')
+							->default(auth()->id())
+							->dehydrated(true),
+						Hidden::make('fecha_anula')
+							->default(now())
+							->dehydrated(true),
+					]),
 
 				/******************* TOTALES ****************/
 				Section::make('Totales')
@@ -225,7 +242,7 @@ class LiquidacionResource extends Resource
 						Forms\Components\TextInput::make('dias_diff')
 							->label('Dias')
 							->columnSpan(2)
-							->disabled(),
+							->readonly(),
 						Forms\Components\TextInput::make('intereses')
 							->label('Intereses (C$)')
 							->columnSpan(2)

@@ -21,10 +21,14 @@ return new class extends Migration {
             $table->decimal('total_qq_liquidados', 10, 2);
             $table->decimal('total_qq_abonados', 10, 2);
             $table->decimal('precio_liquidacion', 10, 2);
-            $table->boolean('activa')->default(true);
             $table->decimal('monto_neto', 10, 2);
             $table->text('observaciones')->nullable();
             $table->date('fecha_liquidacion');
+            $table->enum('estado', ['ACTIVO', 'ANULADO'])->default('ACTIVO');
+            $table->date('fecha_anula')->nullable();
+            $table->string('usuario_anula')->nullable();
+            $table->string('razon_anula')->nullable();
+
             $table->timestamps();
         });
     }

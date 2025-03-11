@@ -32,6 +32,11 @@ return new class extends Migration {
             $table->decimal('monto_bruto', 12, 2)->default(0);
             $table->decimal('iva', 8, 2)->default(0);
             $table->decimal('monto_neto', 12, 2)->default(0);
+            $table->enum('estado', ['ACTIVO', 'ANULADO'])->default('ACTIVO');
+            $table->date('fecha_anula')->nullable();
+            $table->string('usuario_anula')->nullable();
+            $table->string('razon_anula')->nullable();
+
             $table->text('observaciones')->nullable();
 
             $table->timestamps();
