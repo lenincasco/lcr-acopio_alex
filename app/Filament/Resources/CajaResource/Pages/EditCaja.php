@@ -12,8 +12,6 @@ class EditCaja extends EditRecord
 
     protected function getHeaderActions(): array
     {
-        return [
-            Actions\DeleteAction::make(),
-        ];
+        return [];//acciones desactivadas en la single page de edit
     }
 }

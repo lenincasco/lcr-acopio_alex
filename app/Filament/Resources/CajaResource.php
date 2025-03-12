@@ -37,22 +37,23 @@ class CajaResource extends Resource
                 TextColumn::make('monto')
                     ->money('NIO', locale: 'es_NI'),
                 TextColumn::make('concepto'),
+                TextColumn::make('estado'),
                 TextColumn::make('fecha')
                     ->label('Fecha')
                     ->dateTime(),
 
             ])
+            ->defaultSort('updated_at', 'desc')
             ->filters([
                 //
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                //no se muestran botones de acción
             ])
             ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
-            ]);
+                Tables\Actions\BulkActionGroup::make([]), // Lista vacía, no se muestran acciones por lote
+            ])
+            ->recordUrl(null); // 👈 Desactiva el clic en filas
     }
 
     public static function getRelations(): array
