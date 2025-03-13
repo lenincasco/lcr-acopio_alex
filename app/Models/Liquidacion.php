@@ -4,8 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
-use Log;
-use Illuminate\Support\Facades\app\Config;
 
 class Liquidacion extends Model
 {
@@ -19,9 +17,12 @@ class Liquidacion extends Model
     'total_qq_liquidados',
     'total_qq_abonados',
     'precio_liquidacion',
-    'estado',
     'monto_neto',
     'observaciones',
+    'estado',
+    'razon_anula',
+    'fecha_anula',
+    'usuario_anula',
   ];
 
   // NEW relation with User
@@ -45,20 +46,7 @@ class Liquidacion extends Model
   {
     return $this->hasMany(Abono::class);
   }
-  // Accesor para transformar la data de abonos
-  public function getPrestamosDisponiblesAttribute()
-  {
-    return $this->abonos->map(function ($abono) {
-      return [
-        'prestamo_id' => $abono->prestamo_id,
-        'saldo' => $abono->prestamo->saldo,
-        'dias_diff' => $abono->dias_diff,
-        'abono_capital' => $abono->abono_capital,
-        'intereses' => $abono->intereses,
-        'qq_abonados' => $abono->qq_abonados,
-      ];
-    })->toArray();
-  }
+
   protected static function booted()
   {
     // static::created no puede actualizar el campo de cada entrada 'liquidada' a true porque esta se crea después de este proceso

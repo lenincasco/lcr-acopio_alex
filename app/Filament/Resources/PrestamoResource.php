@@ -208,7 +208,6 @@ class PrestamoResource extends Resource
                     ->label('Proveedor')
                     ->sortable()
                     ->searchable(),
-
                 Tables\Columns\TextColumn::make('monto') // Monto del préstamo
                     ->label('Monto Desembolso')
                     ->money('NIO', locale: 'es_NI')
@@ -232,13 +231,12 @@ class PrestamoResource extends Resource
                     ->label('Fecha de ultimo pago'),
                 Tables\Columns\TextColumn::make('fecha_desembolso')
                     ->label('Fecha de Desembolso')
-                    ->date('d-m-yy')
+                    ->dateTime('d-m-Y')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('fecha_vencimiento')
                     ->label('Fecha de Vencimiento')
-                    ->date('d-m-yy')
+                    ->dateTime('d-m-Y')
                     ->sortable(),
-
                 Tables\Columns\TextColumn::make('created_at') // Fecha de creación
                     ->dateTime()
                     ->sortable()
@@ -248,6 +246,7 @@ class PrestamoResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
+            ->defaultSort('updated_at', 'desc')
             ->filters([
                 // Aquí puedes agregar filtros si es necesario
             ])

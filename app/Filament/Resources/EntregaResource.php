@@ -150,7 +150,7 @@ class EntregaResource extends Resource
                 Tables\Columns\TextColumn::make('fecha_entrega')
                     ->label('Fecha de Entrega')
                     ->sortable()
-                    ->date('d-m-yy'),
+                    ->dateTime('d-m-Y'),
                 Tables\Columns\TextColumn::make('tipo_entrega')
                     ->label('Tipo de entrega'),
                 Tables\Columns\TextColumn::make('liquidada')
@@ -177,6 +177,7 @@ class EntregaResource extends Resource
                     ->formatStateUsing(fn(string $state): string => number_format($state, 2)),
 
             ])
+            ->defaultSort('updated_at', 'desc')
             ->filters([
                 //
             ])

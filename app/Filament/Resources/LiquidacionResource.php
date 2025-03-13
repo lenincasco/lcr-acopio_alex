@@ -14,6 +14,7 @@ use Filament\Tables\Table;
 use Filament\Forms\Components\Section;
 use App\Helpers\LiquidacionHelper;
 use Filament\Forms\Components\Hidden;
+use Filament\Notifications\Notification;
 
 use Filament\Actions;
 
@@ -119,6 +120,16 @@ class LiquidacionResource extends Resource
 				Section::make('Anular liquidación')
 					->columns(12)
 					->columnSpan('full')
+					->hidden(function ($livewire, $get): bool {
+						if (!$livewire->record)
+							return true;
+						$currentLiquidacion = $livewire->record;
+						$isLast = Liquidacion::where('proveedor_id', $currentLiquidacion->proveedor_id)
+							->latest('fecha_liquidacion')
+							->first();
+						// Comparar IDs para ver si es la última
+						return !($isLast && $isLast->id === $currentLiquidacion->id);
+					})
 					->schema([
 						Forms\Components\Select::make('estado')
 							->label('¿Anular liquidación?')
@@ -128,19 +139,33 @@ class LiquidacionResource extends Resource
 								'ACTIVO' => 'NO',
 								'ANULADO' => 'SI',
 							])
-							->reactive(),
+							->reactive()
+							->afterStateUpdated(function (callable $set, callable $get, $state, $livewire) {
+								// Cuando el usuario selecciona "ANULADO"
+								if ($state === 'ANULADO') {
+									$currentLiquidacion = $livewire->record;
+									// Verificar si existen abonos que no estén anulados
+									if ($currentLiquidacion && $currentLiquidacion->abonos()->where('estado', '!=', 'ANULADO')->exists()) {
+										// Redirigir al usuario a la página de abonos
+										$livewire->redirectRoute('filament.app.resources.abonos.index');
+										$prestamo = Prestamo::where('proveedor_id', $currentLiquidacion->proveedor_id)
+											->latest()
+											->first();
 
-						Forms\Components\Textarea::make('razon_anula')
-							->label('Razón de la anulación')
-							->columnSpan(6)
-							->required()
-							->hidden(fn($get) => $get('estado') !== 'ANULADO'),
-						Hidden::make('user_id')
-							->default(auth()->id())
-							->dehydrated(true),
-						Hidden::make('fecha_anula')
-							->default(now())
-							->dehydrated(true),
+										Notification::make()
+											->title('Advertencia')
+											->body("La liquidación tiene abonos asociados, ANULE primero dichos abonos.<br>Proveedor: {$prestamo->proveedor->nombrecompleto}")
+											->warning()
+											->persistent()
+											->send();
+										// Revertir el valor del estado a ACTIVO
+										$set('estado', 'ACTIVO');
+									}
+								}
+							}),
+						Forms\Components\Textarea::make('razon_anula')->label('Razón de la anulación')->columnSpan(6)->required()->hidden(fn($get) => $get('estado') !== 'ANULADO'),
+						Hidden::make('user_id')->default(auth()->id())->dehydrated(true),
+						Hidden::make('fecha_anula')->default(now())->dehydrated(true),
 					]),
 
 				/******************* TOTALES ****************/
@@ -187,7 +212,11 @@ class LiquidacionResource extends Resource
 
 				Forms\Components\Repeater::make('prestamos_disponibles')
 					->relationship('abonos')
-					->label('PRÉSTAMOS PENDIENTES POR LIQUIDAR:')
+					->label('PAGARES PENDIENTES POR LIQUIDAR:')
+					->hidden(function (callable $get) {
+						$value = $get('total_qq_abonados');
+						return $value <= 0; // Incluye 0, negativos y valores vacíos
+					})
 					->columns(12)
 					->columnSpan(12)
 					->schema([
@@ -358,12 +387,13 @@ class LiquidacionResource extends Resource
 					->sortable(),
 				Tables\Columns\TextColumn::make('fecha_liquidacion')
 					->label('Fecha de Liquidación')
-					->dateTime()
+					->dateTime('d-m-Y')
 					->sortable(),
 				Tables\Columns\TextColumn::make('usuario.name') // Muestra el nombre del usuario que liquida
 					->label('Usuario Liquida')
 					->sortable(),
 			])
+			->defaultSort('updated_at', 'desc')
 			->filters([
 				//
 			])

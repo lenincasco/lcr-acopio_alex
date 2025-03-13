@@ -15,6 +15,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Forms\Components\Hidden;
+use Illuminate\Support\Facades\Log;
 
 class AbonoResource extends Resource
 {
@@ -59,7 +60,8 @@ class AbonoResource extends Resource
                             ->required()
                             ->disabled(fn($livewire): bool => filled($livewire->record))
                             ->reactive()
-                            ->afterStateUpdated(function (callable $set, callable $get) {
+                            ->afterStateUpdated(function (callable $set, callable $get, $state) {
+                                Log::info('fecha pago abono:' . $state);
                                 self::calcularTotales($get, $set);
                             }),
                         Forms\Components\TextInput::make('monto')
@@ -120,7 +122,7 @@ class AbonoResource extends Resource
                 ])->from('md')
                     ->columnSpanFull(),
 
-                Section::make('Anular pagaré')
+                Section::make('Anular abono')
                     ->columns(12)
                     ->columnSpan('full')
                     ->hidden(function ($livewire, $get): bool {
@@ -138,7 +140,7 @@ class AbonoResource extends Resource
                     })
                     ->schema([
                         Forms\Components\Select::make('estado')
-                            ->label('¿Anular pagaré?')
+                            ->label('¿Anular abono?')
                             ->columnSpan(2)
                             ->default('ACTIVO') // Asegurar un valor inicial
                             ->options([
@@ -223,16 +225,22 @@ class AbonoResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('prestamo.proveedor.nombrecompleto'),
+                Tables\Columns\TextColumn::make('prestamo.proveedor.nombrecompleto')
+                    ->searchable(),
                 Tables\Columns\TextColumn::make('abono_capital')
                     ->label('Abono al capital')
+                    ->searchable()
                     ->money('NIO', locale: 'es_NI'),
                 Tables\Columns\TextColumn::make('intereses')
+                    ->searchable()
                     ->label('Intereses')
                     ->money('NIO', locale: 'es_NI'),
                 Tables\Columns\TextColumn::make('fecha_pago')
+                    ->dateTime('d-m-Y')
+                    ->searchable()
                     ->label('Fecha de pago'),
-                Tables\Columns\TextColumn::make('estado'),
+                Tables\Columns\TextColumn::make('estado')
+                    ->color(fn($record) => $record->estado === 'ANULADO' ? 'danger' : ''),
                 Tables\Columns\TextColumn::make('prestamo.saldo')
                     ->label('Saldo del préstamo')
                     ->money('NIO', locale: 'es_NI'),

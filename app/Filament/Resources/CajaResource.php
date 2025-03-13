@@ -33,14 +33,19 @@ class CajaResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('id'),
-                TextColumn::make('tipo'),
+                TextColumn::make('tipo')
+                    ->searchable(),
                 TextColumn::make('monto')
+                    ->searchable()
                     ->money('NIO', locale: 'es_NI'),
-                TextColumn::make('concepto'),
-                TextColumn::make('estado'),
+                TextColumn::make('concepto')
+                    ->searchable(),
+                TextColumn::make('estado')
+                    ->searchable(),
                 TextColumn::make('fecha')
+                    ->searchable()
                     ->label('Fecha')
-                    ->dateTime(),
+                    ->dateTime('d-m-Y'),
 
             ])
             ->defaultSort('updated_at', 'desc')
