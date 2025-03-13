@@ -1,10 +1,10 @@
 <?php
 namespace App\Helpers;
 
+use App\Models\Abono;
 use App\Models\Caja;
 use App\Models\Prestamo;
 use Carbon\Carbon;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
 
 class PrestamoHelper
@@ -30,59 +30,59 @@ class PrestamoHelper
   }
 
   //********************* UPDATE PRESTAMO ***************************/
-  public static function updateOnCreate(Model $model): void
+  public static function updateOnCreate(Abono $abono): void
   {
-    $prestamo = Prestamo::find($model->prestamo_id);
+    $prestamo = Prestamo::find($abono->prestamo_id);
     Caja::create([
-      'monto' => $model->abono_capital + $model->intereses,
+      'monto' => $abono->abono_capital + $abono->intereses,
       'tipo' => 'entrada',
       'concepto' => Config('caja.concepto.ABONO'),
-      'referencia' => $model->id,
+      'referencia' => $abono->id,
       'user_id' => auth()->id(),
     ]);
 
     if ($prestamo) {
-      $prestamo->saldo -= $model->abono_capital;
-      $prestamo->fecha_ultimo_pago = $model->fecha_liquidacion ?? $model->fecha_pago;
+      $prestamo->saldo -= $abono->abono_capital;
+      $prestamo->fecha_ultimo_pago = $abono->fecha_liquidacion ?? $abono->fecha_pago;
       $prestamo->save();
     } else {
-      Log::warning("No se encontró registro del préstamo para el ID: {$model->id}");
+      Log::warning("No se encontró registro del préstamo para el ID: {$abono->id}");
     }
   }
 
-  public static function updateOnDelete(Model $model): void
+  public static function updateOnDelete(Abono $abono): void
   {
-    $prestamo = Prestamo::find($model->prestamo_id);
+    $prestamo = Prestamo::find($abono->prestamo_id);
 
     if ($prestamo) {
-      $prestamo->saldo += $model->abono_capital;
+      $prestamo->saldo += $abono->abono_capital;
       $prestamo->fecha_ultimo_pago = $prestamo->fecha_desembolso ?? now();
       $prestamo->save();
     } else {
-      Log::warning("No se encontró registro del préstamo para el ID: {$model->id}");
+      Log::warning("No se encontró registro del préstamo para el ID: {$abono->id}");
     }
   }
 
-  public static function updateOnUpdate(Model $model): void
+  public static function updateOnUpdate(Abono $abono): void
   {
-    $prestamo = Prestamo::find($model->prestamo_id);
+    $prestamo = Prestamo::find($abono->prestamo_id);
 
-    $caja = Caja::where('referencia', $model->id)->first();
+    $caja = Caja::where('referencia', $abono->id)->first();
     if ($caja) {
-      $caja->estado = $model->estado;
+      $caja->estado = $abono->estado;
       $caja->save();
     }
 
     //los montos de los abonos no pueden ser editados
     //si el abono es anulado, se revierte el saldo
-    if ($prestamo && $model->estado === "ANULADO") {
-      $prestamo->saldo += $model->abono_capital;
+    if ($prestamo && $abono->estado === "ANULADO") {
+      $prestamo->saldo += $abono->abono_capital;
       $prestamo->save();
-    } elseif ($prestamo && $model->estado === "ACTIVO") {
-      $prestamo->saldo -= $model->abono_capital;
+    } elseif ($prestamo && $abono->estado === "ACTIVO") {
+      $prestamo->saldo -= $abono->abono_capital;
       $prestamo->save();
     } else {
-      Log::warning("No se encontró registro del préstamo para el ID: {$model->id}");
+      Log::warning("No se encontró registro del préstamo para el ID: {$abono->id}");
     }
   }
 
