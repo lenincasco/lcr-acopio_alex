@@ -115,6 +115,9 @@ class LiquidacionHelper
 
     /********* Prestamos *********/
     $totalSaldosPrestamos = 0;
+    // if ($totalQQAbonados === 0 || $totalQQAbonados === '') {
+    //   $repeaterPrestamos = [];
+    // }
     foreach ($repeaterPrestamos as $index => $prestamo) {
       $totalSaldosPrestamos += floatVal($prestamo['saldo']);
 

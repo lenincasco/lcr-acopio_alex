@@ -143,6 +143,7 @@ class PrestamoResource extends Resource
                 Section::make('Anular pagaré')
                     ->columns(12)
                     ->columnSpan('full')
+                    ->hidden(fn($livewire): bool => !filled($livewire->record))
                     ->schema([
                         Forms\Components\Select::make('estado')
                             ->label('¿Anular pagaré?')

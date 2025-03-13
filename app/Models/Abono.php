@@ -19,6 +19,10 @@ class Abono extends Model
         'observaciones',
         'qq_abonados',
         'dias_diff',
+        'estado',
+        'razon_anula',
+        'fecha_anula',
+        'usuario_anula',
     ];
 
     // Relación: un abono pertenece a un préstamo

@@ -25,6 +25,10 @@ class Prestamo extends Model
         'fecha_vencimiento',
         'fecha_ultimo_pago',
         'tipo_cambio',
+        'estado',
+        'razon_anula',
+        'fecha_anula',
+        'usuario_anula',
     ];
 
     // Definir la relación con el proveedor

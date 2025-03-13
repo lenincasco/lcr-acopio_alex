@@ -17,9 +17,6 @@ return new class extends Migration {
             $table->foreignId('user_id')->constrained('users')->onDelete('restrict');
             $table->string('detalle')->nullable();
             $table->enum('estado', ['ACTIVO', 'ANULADO'])->default('ACTIVO');
-            $table->date('fecha_anula')->nullable();
-            $table->string('usuario_anula')->nullable();
-            $table->string('razon_anula')->nullable();
             $table->timestamps();
         });
     }

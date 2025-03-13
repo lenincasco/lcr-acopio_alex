@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\AbonoResource\Pages;
 use App\Models\Abono;
+use App\Models\Prestamo;
 use Carbon\Carbon;
 use Filament\Forms;
 use Filament\Forms\Components\Section;
@@ -13,7 +14,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Schema;
+use Filament\Forms\Components\Hidden;
 
 class AbonoResource extends Resource
 {
@@ -42,6 +43,7 @@ class AbonoResource extends Resource
                             })
                             ->searchable()
                             ->required()
+                            ->disabled(fn($livewire): bool => filled($livewire->record))
                             ->reactive()
                             ->afterStateUpdated(function (callable $set, $state, callable $get) {
                                 $prestamoId = $get('prestamo_id');
@@ -55,6 +57,7 @@ class AbonoResource extends Resource
                                 'style' => 'width: 150px;',
                             ])
                             ->required()
+                            ->disabled(fn($livewire): bool => filled($livewire->record))
                             ->reactive()
                             ->afterStateUpdated(function (callable $set, callable $get) {
                                 self::calcularTotales($get, $set);
@@ -64,24 +67,34 @@ class AbonoResource extends Resource
                             ->numeric()
                             ->required()
                             ->reactive()
+                            ->hidden(fn($livewire): bool => filled($livewire->record))
                             ->debounce(500)
                             ->afterStateUpdated(function (callable $set, callable $get) {
                                 self::calcularTotales($get, $set);
                             }),
                     ]),
                 Section::make('')
-                    ->columns(3)
+                    ->columns(12)
+                    ->columnSpan('full')
                     ->schema([
+                        Forms\Components\TextInput::make('dias_diff')
+                            ->label('Dias desde el ult. Pago')
+                            ->columnSpan(2)
+                            ->disabled()
+                            ->dehydrated(true),
                         Forms\Components\TextInput::make('intereses')
                             ->label('Intereses')
+                            ->columnSpan(2)
                             ->disabled()
                             ->dehydrated(true),
                         Forms\Components\TextInput::make('abono_capital')
                             ->label('Abono al capital')
+                            ->columnSpan(2)
                             ->disabled()
                             ->dehydrated(true),
                         Forms\Components\TextInput::make('saldo')
                             ->label('Saldo')
+                            ->columnSpan(2)
                             ->disabled()
                             ->dehydrated(true),
                     ]),
@@ -97,9 +110,6 @@ class AbonoResource extends Resource
                         ]),
                     Section::make('')
                         ->schema([
-                            Forms\Components\Placeholder::make('dias_diff_placeholder')
-                                ->label('Dias desde el ult. Pago')
-                                ->content(fn(callable $get) => $get('dias_diff') !== null ? $get('dias_diff') : '---'),
                             Forms\Components\Placeholder::make('saldo_anterior_placeholder')
                                 ->label('Saldo anterior')
                                 ->content(fn(callable $get) => $get('saldo_anterior') !== null ? $get('saldo_anterior') : '---'),
@@ -109,6 +119,46 @@ class AbonoResource extends Resource
                         ])->grow(),
                 ])->from('md')
                     ->columnSpanFull(),
+
+                Section::make('Anular pagaré')
+                    ->columns(12)
+                    ->columnSpan('full')
+                    ->hidden(function ($livewire, $get): bool {
+                        if (!$livewire->record)
+                            return true;
+                        // Obtener el abono actual en edición
+                        $currentAbono = $livewire->record;
+                        // Verificar si es el último abono del préstamo
+                        $isLast = Abono::where('prestamo_id', $currentAbono->prestamo_id)
+                            ->latest('created_at')
+                            ->value('id') === $currentAbono->id;
+
+                        return !$isLast; // Ocultar si NO es el último
+            
+                    })
+                    ->schema([
+                        Forms\Components\Select::make('estado')
+                            ->label('¿Anular pagaré?')
+                            ->columnSpan(2)
+                            ->default('ACTIVO') // Asegurar un valor inicial
+                            ->options([
+                                'ACTIVO' => 'NO',
+                                'ANULADO' => 'SI',
+                            ])
+                            ->reactive(),
+
+                        Forms\Components\Textarea::make('razon_anula')
+                            ->label('Razón de la anulación')
+                            ->columnSpan(6)
+                            ->required()
+                            ->hidden(fn($get) => $get('estado') !== 'ANULADO'),
+                        Hidden::make('user_id')
+                            ->default(auth()->id())
+                            ->dehydrated(true),
+                        Hidden::make('fecha_anula')
+                            ->default(now())
+                            ->dehydrated(true),
+                    ]),
             ]);
     }
 
@@ -147,12 +197,20 @@ class AbonoResource extends Resource
             $fechaUltimoPago = $prestamo->fecha_desembolso;
         }
         if ($prestamo) {
+            $saldoAnterior = $prestamo->saldo;
             $diasDiff = Carbon::parse($fechaUltimoPago)->diffInDays(Carbon::parse($fechaPago));
-
+            if ($diasDiff < 0)
+                $diasDiff = 0;
             $intereses = (($prestamo->monto * $prestamo->interes / 100) / 360) * $diasDiff;
             $abonoCapital = floatval($monto) - $intereses;
+            if ($monto > $saldoAnterior + $intereses) {
+                $monto = $saldoAnterior + $intereses;
+                $set('monto', round($monto, 2));
+                $intereses = (($prestamo->monto * $prestamo->interes / 100) / 360) * $diasDiff;
+                $abonoCapital = floatval($monto) - $intereses;
+            }
 
-            $set('saldo_anterior', $prestamo->saldo);
+            $set('saldo_anterior', $saldoAnterior);
             $set('intereses', round($intereses, precision: 2));
             $set('dias_diff', round($diasDiff));
             $set('abono_capital', round($abonoCapital, 2));
@@ -174,10 +232,12 @@ class AbonoResource extends Resource
                     ->money('NIO', locale: 'es_NI'),
                 Tables\Columns\TextColumn::make('fecha_pago')
                     ->label('Fecha de pago'),
+                Tables\Columns\TextColumn::make('estado'),
                 Tables\Columns\TextColumn::make('prestamo.saldo')
                     ->label('Saldo del préstamo')
                     ->money('NIO', locale: 'es_NI'),
             ])
+            ->defaultSort('updated_at', 'desc')
             ->filters([
                 //
             ])

@@ -27,6 +27,10 @@ class Venta extends Model
         'monto_bruto',
         'monto_neto',
         'observaciones',
+        'estado',
+        'razon_anula',
+        'fecha_anula',
+        'usuario_anula',
     ];
 
     public function cliente()

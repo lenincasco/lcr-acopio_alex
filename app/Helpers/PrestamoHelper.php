@@ -1,7 +1,7 @@
 <?php
 namespace App\Helpers;
 
-use App\Models\Abono;
+use App\Models\Caja;
 use App\Models\Prestamo;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
@@ -33,6 +33,13 @@ class PrestamoHelper
   public static function updateOnCreate(Model $model): void
   {
     $prestamo = Prestamo::find($model->prestamo_id);
+    Caja::create([
+      'monto' => $model->abono_capital + $model->intereses,
+      'tipo' => 'entrada',
+      'concepto' => Config('caja.concepto.ABONO'),
+      'referencia' => $model->id,
+      'user_id' => auth()->id(),
+    ]);
 
     if ($prestamo) {
       $prestamo->saldo -= $model->abono_capital;
@@ -58,17 +65,21 @@ class PrestamoHelper
 
   public static function updateOnUpdate(Model $model): void
   {
-    $oldCantidad = $model->getOriginal('monto');
-    $deltaCantidad = $oldCantidad - $model->abono_capital;
     $prestamo = Prestamo::find($model->prestamo_id);
 
-    if ($prestamo) {
-      $prestamo->fecha_ultimo_pago = $model->fecha_liquidacion ?? $model->fecha_pago;
-      if ($deltaCantidad > 0) {
-        $prestamo->saldo += $model->abono_capital;
-      } elseif ($deltaCantidad < 0) {
-        $prestamo->saldo -= $model->abono_capital;
-      }
+    $caja = Caja::where('referencia', $model->id)->first();
+    if ($caja) {
+      $caja->estado = $model->estado;
+      $caja->save();
+    }
+
+    //los montos de los abonos no pueden ser editados
+    //si el abono es anulado, se revierte el saldo
+    if ($prestamo && $model->estado === "ANULADO") {
+      $prestamo->saldo += $model->abono_capital;
+      $prestamo->save();
+    } elseif ($prestamo && $model->estado === "ACTIVO") {
+      $prestamo->saldo -= $model->abono_capital;
       $prestamo->save();
     } else {
       Log::warning("No se encontró registro del préstamo para el ID: {$model->id}");
