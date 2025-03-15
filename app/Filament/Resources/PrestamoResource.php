@@ -7,6 +7,7 @@ use App\Models\Prestamo;
 use Filament\Forms;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -153,7 +154,30 @@ class PrestamoResource extends Resource
                                 'ACTIVO' => 'NO',
                                 'ANULADO' => 'SI',
                             ])
-                            ->reactive(),
+                            ->reactive()
+                            ->afterStateUpdated(function (callable $set, callable $get, $state, $livewire) {
+                                // Cuando el usuario selecciona "ANULADO"
+                                if ($state === 'ANULADO') {
+                                    $currentPrestamo = $livewire->record;
+                                    // Verificar si existen abonos que no estén anulados
+                                    if ($currentPrestamo && $currentPrestamo->abonos()->where('estado', '!=', 'ANULADO')->exists()) {
+                                        // Redirigir al usuario a la página de abonos
+                                        $livewire->redirectRoute('filament.app.resources.abonos.index');
+                                        $prestamo = Prestamo::where('proveedor_id', $currentPrestamo->proveedor_id)
+                                            ->latest()
+                                            ->first();
+
+                                        Notification::make()
+                                            ->title('Advertencia')
+                                            ->body("El pagaré tiene abonos asociados, ANULE primero dichos abonos.<br>Proveedor: {$prestamo->proveedor->nombrecompleto}")
+                                            ->warning()
+                                            ->persistent()
+                                            ->send();
+                                        // Revertir el valor del estado a ACTIVO
+                                        $set('estado', 'ACTIVO');
+                                    }
+                                }
+                            }),
 
                         Forms\Components\Textarea::make('razon_anula')
                             ->label('Razón de la anulación')
@@ -225,6 +249,9 @@ class PrestamoResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('plazo_meses') // Plazo en meses
                     ->label('Plazo (meses)')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('estado')
+                    ->color(fn($record) => $record->estado === 'ANULADO' ? 'danger' : '')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('fecha_ultimo_pago')
                     ->label('Fecha de ultimo pago'),

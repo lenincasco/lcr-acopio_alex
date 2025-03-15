@@ -20,12 +20,14 @@ class CajaResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
-    public static function form(Form $form): Form
+    public static function getModelLabel(): string
     {
-        return $form
-            ->schema([
-                //
-            ]);
+        return 'Caja'; // Nombre en singular
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return 'Caja'; // Nombre en plural
     }
 
     public static function table(Table $table): Table
@@ -41,6 +43,7 @@ class CajaResource extends Resource
                 TextColumn::make('concepto')
                     ->searchable(),
                 TextColumn::make('estado')
+                    ->color(fn($record) => $record->estado === 'ANULADO' ? 'danger' : '')
                     ->searchable(),
                 TextColumn::make('fecha')
                     ->searchable()

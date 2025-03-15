@@ -21,8 +21,18 @@ class LiquidacionHelper
     //$set('prestamos_disponibles', $prestamos->toArray());
     $prestamoRepeater = $prestamos->map(function ($prestamo) {
       return [
-        'prestamo_id' => $prestamo->id,
+        'prestamo_id' => $prestamo->id, // Obligatorio
         'saldo' => $prestamo->saldo,
+        'abono_capital' => 0, // Requerido
+        'intereses' => 0,      // Requerido
+        'nuevo_saldo' => $prestamo->saldo,
+        'dias_diff' => 0,
+        'qq_abonados' => 0,
+        'fecha_pago' => now(),
+        'fecha_ultimo_pago' => $prestamo->fecha_ultimo_pago,
+        'fecha_desembolso' => $prestamo->fecha_desembolso,
+        'monto' => $prestamo->monto,
+        'interes' => $prestamo->interes,
       ];
     })->toArray();
     $set('prestamos_disponibles', $prestamoRepeater);
@@ -63,26 +73,11 @@ class LiquidacionHelper
     if (!$precioLiquidacion)
       return;//evita cálculos innecesarios
 
-    //comprobar si el usuario se encuentra en modo EDIT o CREATE
-    //la limitacion del quintalaje_disponible debe variar
-    $isEdit = filled($livewire->record);
-    $contexto = $isEdit ? 'edit' : 'create';
-    Log::info('context: ' . $contexto);
 
     $repeaterDetalles = $get('detalle_liquidacion') ?? [];
 
-    //Si el usuario está en modo CREATE y $repeaterDetalles es un array vacío, quiere decir que no ha pasado el filtro del formulario, 
-    //y el proveedor tiene todas tus entradas como liquidada = true. Entonces no se puede crear una liquidación para este proveedor
     $TotalEntregasQQ = collect($repeaterDetalles)->sum(fn($row) => (float) ($row['qq_liquidable'] ?? 0));
 
-    // Nuevo: Obtener quintales originales en edición
-    $quintalesOriginales = filled($get('id'))
-      ? Liquidacion::find($get('id'))->total_qq_liquidados
-      : $TotalEntregasQQ;
-
-    // Validación ajustada para edición
-    if ($isEdit)
-      $TotalEntregasQQ = $quintalesOriginales;
     if ($totalQQAbonados > $TotalEntregasQQ) {
       Notification::make()
         ->title("Límite excedido")
@@ -91,7 +86,8 @@ class LiquidacionHelper
         ->send();
       $set('total_qq_abonados', $TotalEntregasQQ);
       return;
-    } elseif ($TotalEntregasQQ < $totalQQAbonados && $contexto === 'create') {
+    }
+    if ($TotalEntregasQQ < $totalQQAbonados) {
       Notification::make()
         ->title("Quintalaje disponible: $TotalEntregasQQ QQ")
         ->body('La cantidad excede al disponible.')
@@ -107,24 +103,23 @@ class LiquidacionHelper
     $montoQQAbona = $totalQQAbonados * $precioLiquidacion;
     Log::info("montoQQLiquida: $montoQQAbona");
 
+
+    /********* Prestamos *********/
     //init values
+    $totalSaldosPrestamos = 0;
     $repeaterPrestamos = $get('prestamos_disponibles') ?? [];
     $sobranteMontoQQAbona = $montoQQAbona;
     $totalIntereses = 0;
     $totalAbonoCapital = 0;
 
-    /********* Prestamos *********/
-    $totalSaldosPrestamos = 0;
-    // if ($totalQQAbonados === 0 || $totalQQAbonados === '') {
-    //   $repeaterPrestamos = [];
-    // }
     foreach ($repeaterPrestamos as $index => $prestamo) {
       $totalSaldosPrestamos += floatVal($prestamo['saldo']);
 
       $saldoActual = floatVal($prestamo['saldo']) ?? 0;
       if ($saldoActual > 0 && $sobranteMontoQQAbona > 0 && $totalQQAbonados > 0) {
         // Obtener los intereses que deben ser descontados
-        $datosAbono = PrestamoHelper::CalcularDiasInteres($prestamo['prestamo_id'], $fechaLiquidacion);
+        $prestamoObj = (object) $prestamo;
+        $datosAbono = PrestamoHelper::CalcularDiasInteres($prestamoObj, $fechaLiquidacion);
         $intereses = floatval($datosAbono->intereses);
         $totalIntereses += $intereses;//actualiza total de intereses de todos los préstamos
 

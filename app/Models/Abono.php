@@ -13,6 +13,7 @@ class Abono extends Model
 
     protected $fillable = [
         'prestamo_id',
+        'liquidacion_id',
         'fecha_pago',
         'abono_capital',
         'intereses',

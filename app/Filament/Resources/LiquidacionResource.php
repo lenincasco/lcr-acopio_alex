@@ -40,7 +40,7 @@ class LiquidacionResource extends Resource
 						Forms\Components\Select::make('proveedor_id')
 							->label('Proveedor/Deudor')
 							->columnSpan(3)
-							->relationship('prestamo.proveedor', 'nombrecompleto')
+							->relationship('proveedor', 'nombrecompleto')
 							->required()
 							->searchable()
 							->reactive()
@@ -295,6 +295,15 @@ class LiquidacionResource extends Resource
 							->disabled()
 							->dehydrated(true),
 					])
+					// // Filtra los items antes de guardarlos
+					// ->dehydrateStateUsing(function ($state) {
+					// 	return collect($state)
+					// 		->filter(function ($item) {
+					// 			// Solo se guardará el item si ambos campos son mayores a 0
+					// 			return isset($item['qq_abonados']) && (float) $item['qq_abonados'] > 0;
+					// 		})
+					// 		->toArray();
+					// })
 					->disableItemCreation()
 					->disableItemDeletion(),
 

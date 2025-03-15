@@ -31,10 +31,15 @@ class Liquidacion extends Model
     return $this->belongsTo(User::class, 'user_id');
   }
 
-  public function prestamo()
+  public function prestamos()
   {
-    return $this->belongsTo(Prestamo::class, 'proveedor_id');
+    return $this->hasMany(Prestamo::class, 'prestamo_id');
   }
+  public function proveedor()
+  {
+    return $this->belongsTo(Proveedor::class, 'proveedor_id');
+  }
+
 
   // Relación con los detalles de la liquidación
   public function detalles()
@@ -44,7 +49,7 @@ class Liquidacion extends Model
   // Nueva relación con abonos
   public function abonos()
   {
-    return $this->hasMany(Abono::class);
+    return $this->hasMany(Abono::class, 'liquidacion_id');
   }
 
   protected static function booted()
