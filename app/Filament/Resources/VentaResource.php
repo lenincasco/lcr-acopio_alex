@@ -12,10 +12,11 @@ use Filament\Resources\Resource;
 use Filament\Support\RawJs;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Filament\Forms\Components\TextInput;
+use App\Traits\RegularPermissions;
 
 class VentaResource extends Resource
 {
+    use RegularPermissions;
     protected static ?string $model = Venta::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-wallet';

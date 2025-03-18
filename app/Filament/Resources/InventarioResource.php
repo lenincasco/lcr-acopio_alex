@@ -4,12 +4,14 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\InventarioResource\Pages;
 use App\Models\Inventario;
+use App\Traits\ReadonlyPermissions;
 use Filament\Resources\Resource;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
 class InventarioResource extends Resource
 {
+    use ReadonlyPermissions;
     protected static ?string $model = Inventario::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-square-3-stack-3d';

@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\ProveedorResource\Pages;
 use App\Filament\Resources\ProveedorResource\RelationManagers;
 use App\Models\Proveedor;
+use App\Traits\RegularPermissions;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -15,6 +16,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class ProveedorResource extends Resource
 {
+    use RegularPermissions;
     protected static ?string $model = Proveedor::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';

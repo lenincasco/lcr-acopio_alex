@@ -10,9 +10,11 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use App\Traits\ReadonlyPermissions;
 
 class CajaResource extends Resource
 {
+    use ReadonlyPermissions;
     protected static ?string $model = Caja::class;
     protected static ?string $navigationGroup = 'Finanzas';
     protected static ?string $navigationLabel = 'Caja';

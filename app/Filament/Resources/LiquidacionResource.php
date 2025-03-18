@@ -6,6 +6,7 @@ use App\Filament\Resources\LiquidacionResource\Pages;
 use App\Models\Entrega;
 use App\Models\Liquidacion;
 use App\Models\Prestamo;
+use App\Traits\RegularPermissions;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -20,6 +21,7 @@ use Filament\Actions;
 
 class LiquidacionResource extends Resource
 {
+	use RegularPermissions;
 	protected static ?string $model = Liquidacion::class;
 	protected static ?string $navigationLabel = 'Liquidaciones';
 	protected static ?string $navigationGroup = 'Finanzas';

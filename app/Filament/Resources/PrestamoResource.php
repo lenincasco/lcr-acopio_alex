@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\PrestamoResource\Pages;
 use App\Models\Prestamo;
+use App\Traits\RegularPermissions;
 use Filament\Forms;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Form;
@@ -21,12 +22,14 @@ use Carbon\Carbon;
 
 class PrestamoResource extends Resource
 {
+    use RegularPermissions;
     protected static ?string $model = Prestamo::class;
     protected static ?string $navigationLabel = 'Pagarés';
     protected static ?string $navigationGroup = 'Finanzas';
     protected static ?int $navigationSort = 2;
 
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';
+
     public static function getModelLabel(): string
     {
         return 'Pagaré'; // Nombre en singular

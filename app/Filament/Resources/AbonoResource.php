@@ -16,9 +16,11 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Forms\Components\Hidden;
 use Illuminate\Support\Facades\Log;
+use App\Traits\RegularPermissions;
 
 class AbonoResource extends Resource
 {
+    use RegularPermissions;
     protected static ?string $model = Abono::class;
     protected static ?string $navigationGroup = 'Finanzas';
     protected static ?int $navigationSort = 4;

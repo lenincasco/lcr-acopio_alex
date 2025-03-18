@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\EntregaResource\Pages;
 use App\Models\Entrega;
+use App\Traits\RegularPermissions;
 use Filament\Tables\Actions\Action;
 use Filament\Forms;
 use Filament\Forms\Components\Section;
@@ -16,6 +17,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 class EntregaResource extends Resource
 {
+    use RegularPermissions;
     protected static ?string $model = Entrega::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-cube';
