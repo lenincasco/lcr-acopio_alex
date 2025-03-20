@@ -11,8 +11,8 @@ class RolePolicy
     use HandlesAuthorization;
     public function before(User $user, $ability)
     {
-        // Superadmin tiene acceso completo
-        if ($user->hasRole('superadmin')) {
+        // super_admin tiene acceso completo
+        if ($user->hasRole('super_admin')) {
             return true;
         }
     }
@@ -22,12 +22,12 @@ class RolePolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasAnyRole(['admin', 'superadmin']);
+        return $user->hasAnyRole(['admin', 'super_admin']);
     }
 
     public function view(User $user, Role $role): bool
     {
-        return $this->viewAny($user) && $role->name !== 'superadmin';
+        return $this->viewAny($user) && $role->name !== 'super_admin';
     }
 
     public function create(User $user): bool
@@ -37,12 +37,12 @@ class RolePolicy
 
     public function update(User $user, Role $role): bool
     {
-        return $user->hasRole('admin') && $role->name !== 'superadmin';
+        return $user->hasRole('admin') && $role->name !== 'super_admin';
     }
 
     public function delete(User $user, Role $role): bool
     {
-        return $user->hasRole('admin') && $role->name !== 'superadmin';
+        return $user->hasRole('admin') && $role->name !== 'super_admin';
     }
     /**
      * Determine whether the user can bulk delete.

@@ -192,7 +192,7 @@ class EntregaResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
-                ]),
+                ])->visible(fn() => auth()->user()->hasRole('super_admin')),
             ])
             ->actions([
                 Action::make('verRecibo')

@@ -13,7 +13,7 @@ class CreateFilamentUserWithRole extends Command
         {email : El email del usuario} 
         {password : La contraseña del usuario} 
         {--admin : Asigna el rol admin} 
-        {--superadmin : Asigna el rol superadmin}';
+        {--super_admin : Asigna el rol super_admin}';
 
     protected $description = 'Crea un usuario para Filament y le asigna un rol si se indica';
 
@@ -30,9 +30,9 @@ class CreateFilamentUserWithRole extends Command
         if ($this->option('admin')) {
             $user->assignRole('admin');
             $this->info("Usuario creado con rol admin.");
-        } elseif ($this->option('superadmin')) {
-            $user->assignRole('superadmin');
-            $this->info("Usuario creado con rol superadmin.");
+        } elseif ($this->option('super_admin')) {
+            $user->assignRole('super_admin');
+            $this->info("Usuario creado con rol super_admin.");
         } else {
             $this->info("Usuario creado sin rol asignado.");
         }

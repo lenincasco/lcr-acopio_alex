@@ -17,6 +17,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Filament\Tables\Enums\ActionsPosition;
 use Filament\Tables\Actions\ActionGroup;
 use Filament\Forms\Components\Section;
+use Illuminate\Contracts\View\View;
 
 use Carbon\Carbon;
 
@@ -225,8 +226,6 @@ class PrestamoResource extends Resource
         }
     }
 
-
-
     public static function table(Table $table): Table
     {
         return $table
@@ -281,14 +280,14 @@ class PrestamoResource extends Resource
             ])
             ->actions([
                 ActionGroup::make([ // Agrupa las acciones en un menú
-                    Action::make('verPagare')
-                        ->label('Vista previa del Pagaré')
-                        ->icon('heroicon-o-eye')
-                        ->modalHeading('Vista Previa del Pagaré')
-                        ->modalSubmitActionLabel('Imprimir')
-                        ->modalWidth('7xl')
-                        ->modalSubmitAction(false)
-                        ->modalContent(fn($record) => view('single.modalpagare', compact('record'))),
+                    // Action::make('verPagare')
+                    //     ->label('Vista previa del Pagaré')
+                    //     ->icon('heroicon-o-eye')
+                    //     ->modalHeading('Vista Previa del Pagaré')
+                    //     ->modalSubmitActionLabel('Imprimir')
+                    //     ->modalWidth('7xl')
+                    //     ->modalSubmitAction(false)
+                    //     ->modalContent(fn($record) => view('single.modalpagare', compact('record'))),
                     Action::make('verPagare')
                         ->label('Ir a la Página del Pagaré')
                         ->icon('heroicon-o-document')
@@ -305,10 +304,11 @@ class PrestamoResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(), // Acción para eliminar en bloque
-                ]),
+                ])->visible(fn() => auth()->user()->hasRole('super_admin')),
             ]);
     }
 
+    //open pagare as PDF on new tab
     public static function verPagare($record)
     {
         $prestamo = Prestamo::with('proveedor')->findOrFail($record);
@@ -317,6 +317,7 @@ class PrestamoResource extends Resource
         return $pdf->stream('pagare-id-' . $prestamo->id . '.pdf');
     }
 
+    //open pagare as web page view on new tab
     // public static function verPagare($record)
     // {
     //     $prestamo = Prestamo::with('proveedor')->findOrFail($record);

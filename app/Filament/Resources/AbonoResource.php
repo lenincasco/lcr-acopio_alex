@@ -36,14 +36,7 @@ class AbonoResource extends Resource
                     ->Schema([
                         Forms\Components\Select::make('prestamo_id')
                             ->label('Deudor')
-                            ->options(function () {
-                                return \App\Models\Prestamo::with('proveedor')
-                                    ->get()
-                                    ->mapWithKeys(function ($prestamo) {
-                                        return [$prestamo->id => $prestamo->proveedor->nombrecompleto];
-                                    })
-                                    ->toArray();
-                            })
+                            ->relationship('prestamo.proveedor', 'nombrecompleto')
                             ->searchable()
                             ->required()
                             ->disabled(fn($livewire): bool => filled($livewire->record))
@@ -72,7 +65,7 @@ class AbonoResource extends Resource
                             ->required()
                             ->reactive()
                             ->hidden(fn($livewire): bool => filled($livewire->record))
-                            ->debounce(500)
+                            ->debounce(750)
                             ->afterStateUpdated(function (callable $set, callable $get) {
                                 self::calcularTotales($get, $set);
                             }),
@@ -257,7 +250,7 @@ class AbonoResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
-                ]),
+                ])->visible(fn() => auth()->user()->hasRole('super_admin')),
             ]);
     }
 
